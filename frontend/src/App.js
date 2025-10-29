@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import "@/App.css";
 import axios from "axios";
-import { Search, Filter, Star, Clock, X } from "lucide-react";
+import { Search, Filter, Star, Clock, X, Sparkles, Youtube } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
