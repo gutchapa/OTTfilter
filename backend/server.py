@@ -68,7 +68,8 @@ class Movie(BaseModel):
     original_language: str
     cast: List[str] = []
     director: Optional[str] = None
-    rating: float = 0.0
+    rating: float = 0.0  # TMDB rating
+    imdb_rating: Optional[float] = None  # IMDb rating from OMDb
     vote_count: int = 0
     release_date: Optional[str] = None
     synopsis: str = ""
