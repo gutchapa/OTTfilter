@@ -632,10 +632,8 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                     'sort_by': 'release_date.desc' if parsed.sort_by == 'release_date' else 'popularity.desc',
                     'page': 1
                 }
-                if parsed.languages:
-                    lang_code_map = {'Tamil': 'ta', 'Hindi': 'hi', 'Telugu': 'te', 'Malayalam': 'ml', 'Kannada': 'kn', 'English': 'en'}
-                    lang_code = lang_code_map.get(parsed.languages[0], 'en')
-                    discover_params['with_original_language'] = lang_code
+                # Only add language filter if user explicitly mentioned it (not AI-inferred)
+                # This prevents missing movies due to wrong language inference
                 
                 movies_data = await fetch_tmdb_data('/discover/movie', discover_params)
                 
