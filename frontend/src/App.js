@@ -603,7 +603,7 @@ function App() {
                       {selectedMovie.certification && (
                         <div>
                           <h3 className="font-semibold mb-1">Content Rating</h3>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3">
                             <span className="bg-red-100 text-red-700 px-3 py-1 rounded font-bold border-2 border-red-300">
                               {selectedMovie.certification}
                             </span>
@@ -616,6 +616,20 @@ function App() {
                               {selectedMovie.certification === 'R' && 'Restricted - 17+ or with parent'}
                               {!['U', 'U/A', 'A', 'PG', 'PG-13', 'R'].includes(selectedMovie.certification) && 'See rating details'}
                             </span>
+                            {selectedMovie.content_warnings && selectedMovie.content_warnings.length > 0 && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setContentWarningsMovie(selectedMovie);
+                                  setShowContentWarnings(true);
+                                }}
+                                className="text-red-700 border-red-300 hover:bg-red-50"
+                              >
+                                <Info className="w-4 h-4 mr-1" />
+                                Why {selectedMovie.certification}?
+                              </Button>
+                            )}
                           </div>
                         </div>
                       )}
