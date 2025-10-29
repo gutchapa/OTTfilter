@@ -6,7 +6,7 @@ import os
 import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from typing import List, Optional, Tuple
 import uuid
 from datetime import datetime, timezone
 import httpx
@@ -14,6 +14,7 @@ import asyncio
 import json
 from openai import AsyncOpenAI
 from googleapiclient.discovery import build
+from difflib import SequenceMatcher
 
 
 ROOT_DIR = Path(__file__).parent
