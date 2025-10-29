@@ -659,7 +659,9 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             query['rating'] = {'$gte': parsed.min_rating}
         
         if parsed.cast_name:
-            # Try to find in database first (quick check)
+            # IMPORTANT: Only search in top 5 cast members (lead actors)
+            # MongoDB doesn't support array slice in find, so we'll filter in Python after fetching
+            # First get potential matches
             query['$or'] = [
                 {'cast': {'$regex': parsed.cast_name, '$options': 'i'}},
                 {'director': {'$regex': parsed.cast_name, '$options': 'i'}}
@@ -674,8 +676,23 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         
         # Fetch movies from database first
         # Increase limit if filtering by platform (they should have many movies)
-        limit = 100 if parsed.platforms else 30
+        limit = 100 if parsed.platforms else 50
         movies = await db.movies.find(query, {'_id': 0}).sort(sort_field if 'sort_field' in locals() else 'popularity', -1).limit(limit).to_list(limit)
+        
+        # CRITICAL FIX: If searching by cast_name, filter to only movies where actor is in top 5 (leads)
+        if parsed.cast_name and len(movies) > 0:
+            filtered_movies = []
+            for movie in movies:
+                # Check if actor name is in top 5 cast OR is director
+                top_cast = movie.get('cast', [])[:5]  # Only check first 5 (leads)
+                is_lead = any(parsed.cast_name.lower() in actor.lower() for actor in top_cast)
+                is_director = parsed.cast_name.lower() in (movie.get('director', '') or '').lower()
+                
+                if is_lead or is_director:
+                    filtered_movies.append(movie)
+            
+            movies = filtered_movies
+            logger.info(f"Filtered to {len(movies)} movies where '{parsed.cast_name}' is lead actor/director")
         
         # If no movies found and cast_name is present, try name correction then search TMDB
         if len(movies) == 0 and parsed.cast_name:
