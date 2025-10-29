@@ -70,6 +70,7 @@ class Movie(BaseModel):
     director: Optional[str] = None
     rating: float = 0.0  # TMDB rating
     imdb_rating: Optional[float] = None  # IMDb rating from OMDb
+    certification: Optional[str] = None  # Content rating (PG, PG-13, R, U/A, etc.)
     vote_count: int = 0
     release_date: Optional[str] = None
     synopsis: str = ""
