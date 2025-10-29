@@ -261,27 +261,35 @@ Available options:
 - Genres: Action, Adventure, Animation, Comedy, Crime, Drama, Fantasy, Horror, Music, Romance, Science Fiction, Thriller, War
 - Platforms: Netflix, Prime Video, Disney+ Hotstar, Jio Cinema, Zee5, SonyLIV, Voot, MX Player, Aha, Sun NXT
 
-IMPORTANT: Users may have typos or incorrect spellings in actor names. Keep the name AS-IS in cast_name field - don't try to correct it.
+PLATFORM NAME VARIATIONS (user may say any of these):
+- "jio", "jio star", "jio cinema", "jiocinema" -> map to "Jio Cinema"
+- "netflix" -> "Netflix"  
+- "prime", "prime video", "amazon prime" -> "Prime Video"
+- "hotstar", "disney hotstar", "disney+ hotstar" -> "Disney+ Hotstar"
+- "zee5", "zee 5" -> "Zee5"
+- "sony", "sonyliv", "sony liv" -> "SonyLIV"
+- If user mentions a platform, put it in platforms array, NOT in keywords
+
+IMPORTANT: Users may have typos in actor names. Keep the name AS-IS in cast_name field.
 
 Extract and return JSON with:
 {
-  "languages": ["Tamil"],  // if language mentioned (infer from actor name if possible, e.g., Vijay->Tamil, Fahadh->Malayalam)
-  "genres": ["Romance", "Comedy"],  // if genre mentioned  
-  "platforms": ["Netflix"],  // if platform mentioned
-  "min_rating": 7.0,  // if rating mentioned (convert "highest rating" to 7.0)
-  "cast_name": "exact name from query",  // actor/director name EXACTLY as user typed (keep typos)
-  "keywords": "keyword to search",  // for song names, movie names, or other keywords
-  "sort_by": "rating",  // "rating" if "highest/best" mentioned, "release_date" if "latest/recent/new" mentioned, else "popularity"
-  "intent": "search_song"  // "search_song" if asking about songs/soundtrack, else "search_movie"
+  "languages": ["Tamil"],  // if language mentioned
+  "genres": ["Romance"],  // if genre mentioned  
+  "platforms": ["Jio Cinema"],  // if ANY platform mentioned (check variations above)
+  "min_rating": 7.0,  // if rating mentioned
+  "cast_name": "exact name from query",  // actor/director name EXACTLY as typed
+  "keywords": null,  // ONLY for song names or specific movie titles, NOT for platforms
+  "sort_by": "release_date",  // "rating" if "highest/best", "release_date" if "latest/recent/new", else "popularity"
+  "intent": "search_movie"
 }
 
 Examples:
-- "latest tamil movie with highest rating" -> {"languages": ["Tamil"], "sort_by": "release_date", "min_rating": 7.0}
-- "malayalam romance movies by Fahadh Faasil" -> {"languages": ["Malayalam"], "genres": ["Romance"], "cast_name": "Fahadh Faasil", "sort_by": "release_date"}
-- "fahid fasil latest movie" -> {"cast_name": "fahid fasil", "sort_by": "release_date", "languages": ["Malayalam"]}
-- "aishwarya lakshmi latest movie" -> {"cast_name": "aishwarya lakshmi", "sort_by": "release_date", "languages": ["Tamil"]}
+- "jio star movies" -> {"platforms": ["Jio Cinema"]}
+- "latest tamil movies on netflix" -> {"languages": ["Tamil"], "platforms": ["Netflix"], "sort_by": "release_date"}
+- "fahid fasil latest movie" -> {"cast_name": "fahid fasil", "sort_by": "release_date"}
 - "tamil movie with sollamale song" -> {"languages": ["Tamil"], "keywords": "sollamale", "intent": "search_song"}
-- "comedy genre by vijay" -> {"genres": ["Comedy"], "cast_name": "vijay", "languages": ["Tamil"]}
+- "prime video action movies" -> {"platforms": ["Prime Video"], "genres": ["Action"]}
 
 Return only valid JSON, no explanations."""
 
