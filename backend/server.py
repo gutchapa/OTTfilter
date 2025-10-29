@@ -632,16 +632,18 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                     {'title': {'$regex': parsed.keywords, '$options': 'i'}},
                     {'original_title': {'$regex': parsed.keywords, '$options': 'i'}}
                 ]
+            
+            # If no movies found yet, fetch from database with keywords
+            if len(movies) == 0:
+                movies = await db.movies.find(query, {'_id': 0}).sort('popularity', -1).limit(30).to_list(30)
         
-        # Determine sort order
-        sort_field = 'popularity'
+        # Determine sort order and sort movies
         if parsed.sort_by == 'rating':
-            sort_field = 'rating'
+            movies.sort(key=lambda x: x.get('rating', 0), reverse=True)
         elif parsed.sort_by == 'release_date':
-            sort_field = 'release_date'
-        
-        # Fetch movies
-        movies = await db.movies.find(query, {'_id': 0}).sort(sort_field, -1).limit(30).to_list(30)
+            movies.sort(key=lambda x: x.get('release_date', ''), reverse=True)
+        else:
+            movies.sort(key=lambda x: x.get('popularity', 0), reverse=True)
         
         # If looking for songs/trailers, also get YouTube results for top movies
         youtube_results = []
