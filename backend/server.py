@@ -871,14 +871,31 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         if parsed.min_rating:
             query['rating'] = {'$gte': parsed.min_rating}
         
-        if parsed.cast_name:
-            # IMPORTANT: Only search in top 5 cast members (lead actors)
-            # MongoDB doesn't support array slice in find, so we'll filter in Python after fetching
-            # First get potential matches
+        # CRITICAL FIX: If keywords present (movie title search), search by title
+        if parsed.keywords and parsed.intent == "search_movie":
             query['$or'] = [
+                {'title': {'$regex': parsed.keywords, '$options': 'i'}},
+                {'original_title': {'$regex': parsed.keywords, '$options': 'i'}}
+            ]
+        
+        if parsed.cast_name:
+            # If we already have $or for title search, combine with AND
+            cast_or = [
                 {'cast': {'$regex': parsed.cast_name, '$options': 'i'}},
                 {'director': {'$regex': parsed.cast_name, '$options': 'i'}}
             ]
+            
+            if '$or' in query:
+                # Combine title search with cast search using $and
+                query = {
+                    '$and': [
+                        {'$or': query.pop('$or')},
+                        {'$or': cast_or}
+                    ],
+                    **query  # Add remaining filters
+                }
+            else:
+                query['$or'] = cast_or
             
             # Determine sort order
             sort_field = 'popularity'
