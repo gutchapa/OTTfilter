@@ -211,6 +211,68 @@ async def get_movie_certification(tmdb_id: int) -> Optional[str]:
             # Return any available certification
             return list(certifications.values())[0]
         
+
+
+async def generate_content_warnings(title: str, genres: List[str], synopsis: str, certification: Optional[str]) -> List[str]:
+    """Use AI to generate detailed content warnings based on movie info"""
+    if not openai_client or not certification:
+        return []
+    
+    try:
+        genre_str = ", ".join(genres) if genres else "Unknown"
+        
+        prompt = f"""Given this movie information, provide specific content warnings that explain WHY it has this rating.
+
+Movie: {title}
+Certification: {certification}
+Genres: {genre_str}
+Synopsis: {synopsis[:300]}
+
+Based on the certification and genres, list 3-5 specific content warnings. Be precise and helpful for parents.
+
+For Horror/Thriller: mention jump scares, supernatural elements, gore, violence
+For Action: mention violence intensity, blood, combat scenes
+For Drama: mention emotional intensity, mature themes
+For Comedy: mention crude humor, language
+For any rating: mention sexual content, nudity, profanity, drug use if applicable
+
+Return ONLY a JSON array of strings, no explanations:
+["warning 1", "warning 2", "warning 3"]
+
+Example for Horror movie rated A:
+["Jump scares and intense supernatural horror", "Disturbing imagery and dark atmosphere", "Violence and frightening scenes"]
+
+Example for Action movie rated PG-13:
+["Intense action violence and fight sequences", "Mild language", "Some peril and destruction"]"""
+
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a content rating expert who provides detailed, helpful warnings for families."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.3,
+            max_tokens=150,
+            response_format={"type": "json_object"}
+        )
+        
+        result = json.loads(response.choices[0].message.content)
+        # Handle both array and object responses
+        if isinstance(result, list):
+            return result
+        elif isinstance(result, dict):
+            # Try common keys
+            for key in ['warnings', 'content_warnings', 'items', 'data']:
+                if key in result and isinstance(result[key], list):
+                    return result[key]
+            # If it's a dict with string values, convert to list
+            return list(result.values()) if result else []
+        return []
+        
+    except Exception as e:
+        logger.error(f"Error generating content warnings: {str(e)}")
+        return []
+
         return None
         
     except Exception as e:
