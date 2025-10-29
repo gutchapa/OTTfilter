@@ -11,6 +11,9 @@ import uuid
 from datetime import datetime, timezone
 import httpx
 import asyncio
+import json
+from openai import AsyncOpenAI
+from googleapiclient.discovery import build
 
 
 ROOT_DIR = Path(__file__).parent
@@ -25,6 +28,14 @@ db = client[os.environ['DB_NAME']]
 TMDB_API_KEY = os.environ['TMDB_API_KEY']
 TMDB_BASE_URL = "https://api.themoviedb.org/3"
 TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500"
+
+# OpenAI Configuration
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+
+# YouTube Configuration
+YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', '')
+youtube_service = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY) if YOUTUBE_API_KEY else None
 
 # Create the main app
 app = FastAPI()
