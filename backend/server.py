@@ -403,6 +403,45 @@ async def fuzzy_search_actor(name: str) -> Optional[Tuple[int, str]]:
         
         for variant in variations[1:]:  # Skip first as already tried
             search_params = {'query': variant, 'page': 1}
+
+
+async def correct_actor_name(misspelled_name: str) -> str:
+    """Use LLM to correct actor name spelling"""
+    if not openai_client:
+        return misspelled_name
+    
+    try:
+        prompt = f"""Given this possibly misspelled Indian actor/actress name: "{misspelled_name}"
+
+Correct it to the most likely proper spelling. Common Indian actors include:
+- Fahadh Faasil (Malayalam)
+- Vijay, Rajinikanth, Suriya, Ajith Kumar, Dhanush (Tamil)
+- Aishwarya Lekshmi, Aishwarya Rajesh (Tamil/Malayalam)
+- Prabhas, Mahesh Babu, Allu Arjun (Telugu)
+- Shah Rukh Khan, Aamir Khan, Salman Khan, Ranbir Kapoor (Hindi)
+
+Return ONLY the corrected name, nothing else. If unsure, return the original name."""
+
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert in Indian cinema actor names."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.1,
+            max_tokens=50
+        )
+        
+        corrected = response.choices[0].message.content.strip()
+        if corrected and corrected.lower() != misspelled_name.lower():
+            logger.info(f"Name correction: '{misspelled_name}' → '{corrected}'")
+            return corrected
+        return misspelled_name
+        
+    except Exception as e:
+        logger.error(f"Error correcting actor name: {str(e)}")
+        return misspelled_name
+
             person_data = await fetch_tmdb_data('/search/person', search_params)
             
             if person_data and person_data.get('results'):
