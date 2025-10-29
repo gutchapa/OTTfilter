@@ -531,6 +531,111 @@ async def search_movies(q: str = Query(..., min_length=1)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+
+@api_router.post("/natural-search")
+async def natural_language_search(nl_query: NaturalLanguageQuery):
+    """Search movies using natural language query"""
+    try:
+        # Parse the natural language query
+        parsed = await parse_natural_language_query(nl_query.query)
+        
+        # If intent is to search for songs, use YouTube
+        if parsed.intent == "search_song" and parsed.keywords:
+            youtube_query = f"{parsed.keywords} song"
+            if parsed.languages:
+                youtube_query += f" {parsed.languages[0]}"
+            
+            youtube_videos = search_youtube_videos(youtube_query, max_results=10)
+            
+            return {
+                "intent": "youtube_search",
+                "parsed_query": parsed.model_dump(),
+                "youtube_results": [v.model_dump() for v in youtube_videos],
+                "movies": []
+            }
+        
+        # Build MongoDB query for movie search
+        query = {}
+        
+        if parsed.languages:
+            query['language'] = {'$in': parsed.languages}
+        
+        if parsed.genres:
+            query['genres'] = {'$in': parsed.genres}
+        
+        if parsed.platforms:
+            query['ott_platforms'] = {'$in': parsed.platforms}
+        
+        if parsed.min_rating:
+            query['rating'] = {'$gte': parsed.min_rating}
+        
+        if parsed.cast_name:
+            query['$or'] = [
+                {'cast': {'$regex': parsed.cast_name, '$options': 'i'}},
+                {'director': {'$regex': parsed.cast_name, '$options': 'i'}}
+            ]
+        
+        if parsed.keywords and not parsed.cast_name:
+            if '$or' in query:
+                # Already has $or for cast, combine
+                query['$and'] = [
+                    {'$or': query.pop('$or')},
+                    {'$or': [
+                        {'title': {'$regex': parsed.keywords, '$options': 'i'}},
+                        {'original_title': {'$regex': parsed.keywords, '$options': 'i'}}
+                    ]}
+                ]
+            else:
+                query['$or'] = [
+                    {'title': {'$regex': parsed.keywords, '$options': 'i'}},
+                    {'original_title': {'$regex': parsed.keywords, '$options': 'i'}}
+                ]
+        
+        # Determine sort order
+        sort_field = 'popularity'
+        if parsed.sort_by == 'rating':
+            sort_field = 'rating'
+        elif parsed.sort_by == 'release_date':
+            sort_field = 'release_date'
+        
+        # Fetch movies
+        movies = await db.movies.find(query, {'_id': 0}).sort(sort_field, -1).limit(30).to_list(30)
+        
+        # If looking for songs/trailers, also get YouTube results for top movies
+        youtube_results = []
+        if youtube_service and movies and parsed.keywords:
+            # Get trailer/song for top movie
+            top_movie = movies[0]
+            yt_query = f"{top_movie['title']} {parsed.keywords}"
+            youtube_results = search_youtube_videos(yt_query, max_results=5)
+        
+        return {
+            "intent": "movie_search",
+            "parsed_query": parsed.model_dump(),
+            "movies": movies,
+            "youtube_results": [v.model_dump() for v in youtube_results]
+        }
+    
+    except Exception as e:
+        logger.error(f"Error in natural_language_search: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@api_router.get("/youtube/search")
+async def search_youtube(q: str = Query(..., min_length=1), max_results: int = 10):
+    """Search YouTube for videos (trailers, songs, scenes)"""
+    try:
+        if not youtube_service:
+            raise HTTPException(status_code=503, detail="YouTube API not configured")
+        
+        videos = search_youtube_videos(q, max_results)
+        return {"videos": [v.model_dump() for v in videos]}
+    
+    except Exception as e:
+        logger.error(f"Error in YouTube search: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Include the router in the main app
 app.include_router(api_router)
 
