@@ -175,6 +175,9 @@ async def get_imdb_rating(imdb_id: str) -> Optional[float]:
             if data.get('Response') == 'True' and data.get('imdbRating') != 'N/A':
                 return float(data['imdbRating'])
     except Exception as e:
+        logger.error(f"Error fetching IMDb rating: {str(e)}")
+    
+    return None
 
 
 async def get_movie_certification(tmdb_id: int) -> Optional[str]:
