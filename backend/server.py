@@ -693,7 +693,7 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         return {
             "intent": "movie_search",
             "parsed_query": parsed.model_dump(),
-            "movies": movies,
+            "movies": movies_dicts,
             "youtube_results": [v.model_dump() for v in youtube_results]
         }
     
