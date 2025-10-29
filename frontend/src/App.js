@@ -416,13 +416,23 @@ function App() {
                       </div>
                     )}
                     
-                    {/* Rating Badge */}
-                    {movie.rating > 0 && (
-                      <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 px-2 py-1 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg">
-                        <Star className="w-3 h-3 fill-yellow-900" />
-                        {movie.rating}
-                      </div>
-                    )}
+                    {/* Rating Badges */}
+                    <div className="absolute top-2 right-2 flex flex-col gap-1">
+                      {movie.rating > 0 && (
+                        <div className="bg-teal-500 text-white px-2 py-1 rounded text-xs font-bold flex items-center gap-1 shadow-lg">
+                          <Star className="w-3 h-3 fill-white" />
+                          {movie.rating}
+                          <span className="text-[10px] opacity-80">TMDB</span>
+                        </div>
+                      )}
+                      {movie.imdb_rating && (
+                        <div className="bg-yellow-400 text-yellow-900 px-2 py-1 rounded text-xs font-bold flex items-center gap-1 shadow-lg">
+                          <Star className="w-3 h-3 fill-yellow-900" />
+                          {movie.imdb_rating}
+                          <span className="text-[10px]">IMDb</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Info */}
