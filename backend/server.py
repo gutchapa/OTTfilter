@@ -260,23 +260,27 @@ Available options:
 - Genres: Action, Adventure, Animation, Comedy, Crime, Drama, Fantasy, Horror, Music, Romance, Science Fiction, Thriller, War
 - Platforms: Netflix, Prime Video, Disney+ Hotstar, Jio Cinema, Zee5, SonyLIV, Voot, MX Player, Aha, Sun NXT
 
+IMPORTANT: Users may have typos or incorrect spellings in actor names. Keep the name AS-IS in cast_name field - don't try to correct it.
+
 Extract and return JSON with:
 {
-  "languages": ["Tamil"],  // if language mentioned
+  "languages": ["Tamil"],  // if language mentioned (infer from actor name if possible, e.g., Vijay->Tamil, Fahadh->Malayalam)
   "genres": ["Romance", "Comedy"],  // if genre mentioned  
   "platforms": ["Netflix"],  // if platform mentioned
   "min_rating": 7.0,  // if rating mentioned (convert "highest rating" to 7.0)
-  "cast_name": "Rajinikanth",  // if actor/director name mentioned
+  "cast_name": "exact name from query",  // actor/director name EXACTLY as user typed (keep typos)
   "keywords": "keyword to search",  // for song names, movie names, or other keywords
-  "sort_by": "rating",  // "rating" if "highest/best" mentioned, "release_date" if "latest/recent" mentioned, else "popularity"
+  "sort_by": "rating",  // "rating" if "highest/best" mentioned, "release_date" if "latest/recent/new" mentioned, else "popularity"
   "intent": "search_song"  // "search_song" if asking about songs/soundtrack, else "search_movie"
 }
 
 Examples:
-- "latest tamil movie with highest rating" -> {"languages": ["Tamil"], "sort_by": "rating", "min_rating": 7.0}
-- "malayalam romance movies by Fahadh Faasil" -> {"languages": ["Malayalam"], "genres": ["Romance"], "cast_name": "Fahadh Faasil"}
+- "latest tamil movie with highest rating" -> {"languages": ["Tamil"], "sort_by": "release_date", "min_rating": 7.0}
+- "malayalam romance movies by Fahadh Faasil" -> {"languages": ["Malayalam"], "genres": ["Romance"], "cast_name": "Fahadh Faasil", "sort_by": "release_date"}
+- "fahid fasil latest movie" -> {"cast_name": "fahid fasil", "sort_by": "release_date", "languages": ["Malayalam"]}
+- "aishwarya lakshmi latest movie" -> {"cast_name": "aishwarya lakshmi", "sort_by": "release_date", "languages": ["Tamil"]}
 - "tamil movie with sollamale song" -> {"languages": ["Tamil"], "keywords": "sollamale", "intent": "search_song"}
-- "comedy genre by vijay" -> {"genres": ["Comedy"], "cast_name": "vijay"}
+- "comedy genre by vijay" -> {"genres": ["Comedy"], "cast_name": "vijay", "languages": ["Tamil"]}
 
 Return only valid JSON, no explanations."""
 
