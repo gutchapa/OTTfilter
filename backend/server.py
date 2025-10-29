@@ -609,11 +609,21 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 person_data = await fetch_tmdb_data('/search/person', search_params)
                 
                 if person_data and person_data.get('results') and len(person_data['results']) > 0:
-                    # Take the most popular result (first one)
-                    person_id = person_data['results'][0]['id']
-                    person_name = person_data['results'][0]['name']
-                    logger.info(f"Found person: {person_name} (ID: {person_id}) for query: {query}")
-                    break
+                    # Try each result until we find one with movies
+                    for person in person_data['results'][:3]:  # Check top 3 results
+                        test_person_id = person['id']
+                        # Quick test if this person has movies
+                        test_params = {'with_cast': test_person_id, 'page': 1}
+                        test_data = await fetch_tmdb_data('/discover/movie', test_params)
+                        
+                        if test_data and test_data.get('results') and len(test_data['results']) > 0:
+                            person_id = test_person_id
+                            person_name = person['name']
+                            logger.info(f"Found person: {person_name} (ID: {person_id}) with movies")
+                            break
+                    
+                    if person_id:
+                        break
             
             if person_id:
                 # Get movies by this person
