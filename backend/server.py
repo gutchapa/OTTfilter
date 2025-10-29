@@ -83,6 +83,29 @@ class FilterOptions(BaseModel):
     platforms: List[str]
 
 
+class NaturalLanguageQuery(BaseModel):
+    query: str
+
+
+class ParsedQuery(BaseModel):
+    genres: Optional[List[str]] = None
+    languages: Optional[List[str]] = None
+    platforms: Optional[List[str]] = None
+    min_rating: Optional[float] = None
+    cast_name: Optional[str] = None
+    keywords: Optional[str] = None
+    sort_by: Optional[str] = "popularity"
+    intent: Optional[str] = None
+
+
+class YouTubeVideo(BaseModel):
+    video_id: str
+    title: str
+    thumbnail_url: str
+    channel_title: str
+    url: str
+
+
 # TMDB API Helper Functions
 async def fetch_tmdb_data(endpoint: str, params: dict = None):
     """Fetch data from TMDB API"""
