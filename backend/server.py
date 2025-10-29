@@ -696,10 +696,15 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             query['rating'] = {'$gte': parsed.min_rating}
         
         if parsed.cast_name:
-            # First, try to find in database
+            # First, use LLM to correct the name
+            corrected_name = await correct_actor_name(parsed.cast_name)
+            
+            # Try to find in database with both original and corrected names
             query['$or'] = [
                 {'cast': {'$regex': parsed.cast_name, '$options': 'i'}},
-                {'director': {'$regex': parsed.cast_name, '$options': 'i'}}
+                {'director': {'$regex': parsed.cast_name, '$options': 'i'}},
+                {'cast': {'$regex': corrected_name, '$options': 'i'}},
+                {'director': {'$regex': corrected_name, '$options': 'i'}}
             ]
             
             # Determine sort order
@@ -710,12 +715,15 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 sort_field = 'release_date'
         
         # Fetch movies from database first
-        movies = await db.movies.find(query, {'_id': 0}).sort(sort_field if 'sort_field' in locals() else 'popularity', -1).limit(30).to_list(30)
+        # Increase limit if filtering by platform (they should have many movies)
+        limit = 100 if parsed.platforms else 30
+        movies = await db.movies.find(query, {'_id': 0}).sort(sort_field if 'sort_field' in locals() else 'popularity', -1).limit(limit).to_list(limit)
         
-        # If no movies found and cast_name is present, search TMDB
+        # If no movies found and cast_name is present, search TMDB with corrected name
         if len(movies) == 0 and parsed.cast_name:
-            # Use fuzzy search for actor
-            result = await fuzzy_search_actor(parsed.cast_name)
+            # Use the corrected name for TMDB search
+            search_name = corrected_name if 'corrected_name' in locals() else parsed.cast_name
+            result = await fuzzy_search_actor(search_name)
             
             if result:
                 person_id, person_name = result
