@@ -383,6 +383,7 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
             rating=round(details.get('vote_average', 0), 1),
             imdb_rating=round(imdb_rating, 1) if imdb_rating else None,
             certification=certification,
+            content_warnings=None,  # Will be generated on-demand
             vote_count=details.get('vote_count', 0),
             release_date=details.get('release_date', ''),
             synopsis=details.get('overview', ''),
@@ -392,6 +393,16 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
             runtime=details.get('runtime'),
             popularity=details.get('popularity', 0)
         )
+        
+        # Generate content warnings if certification exists (async, don't wait)
+        if certification:
+            warnings = await generate_content_warnings(
+                movie.title,
+                movie.genres,
+                movie.synopsis,
+                certification
+            )
+            movie.content_warnings = warnings
         
         return movie
     except Exception as e:
