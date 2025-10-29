@@ -442,11 +442,16 @@ function App() {
                     </h3>
                     
                     <div className="space-y-2">
-                      {/* Language & Year */}
-                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                      {/* Language, Year & Certification */}
+                      <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
                         <span className="bg-teal-100 text-teal-700 px-2 py-0.5 rounded">{movie.language}</span>
                         {movie.release_date && (
                           <span>{new Date(movie.release_date).getFullYear()}</span>
+                        )}
+                        {movie.certification && (
+                          <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded font-semibold border border-red-300">
+                            {movie.certification}
+                          </span>
                         )}
                       </div>
                       
