@@ -453,6 +453,11 @@ THEME/DESCRIPTION UNDERSTANDING (IMPORTANT):
 
 IMPORTANT: Users may have typos in actor names. Keep the name AS-IS in cast_name field.
 
+COMEDY SCENES & CLIPS (IMPORTANT):
+- If user searches for "comedy scenes", "best scenes", "funny moments", "clips" etc., treat as YouTube search
+- Examples: "vadivelu best comedy scenes" -> intent: "search_youtube", keywords: "vadivelu comedy scenes"
+- Examples: "salman khan action scenes" -> intent: "search_youtube", keywords: "salman khan action scenes"
+
 Extract and return JSON with:
 {
   "languages": ["Tamil"],  // if language mentioned
@@ -460,12 +465,14 @@ Extract and return JSON with:
   "platforms": ["Jio Cinema"],  // if ANY platform mentioned (check variations above)
   "min_rating": 7.0,  // if rating mentioned, or 7.0 for "top/best"
   "cast_name": "exact name from query",  // actor/director name EXACTLY as typed (even partial names)
-  "keywords": null,  // ONLY for actual song names or specific movie titles
+  "keywords": "comedy scenes",  // for song names, movie titles, OR scene/clip searches
   "sort_by": "release_date",  // "rating" if "highest/best/top", "release_date" if "latest/recent/new", else "popularity"
-  "intent": "search_movie"
+  "intent": "search_youtube"  // "search_song" for songs, "search_youtube" for scenes/clips, else "search_movie"
 }
 
 Examples:
+- "vadivelu best comedy scenes" -> {"keywords": "vadivelu comedy scenes", "intent": "search_youtube", "cast_name": "vadivelu"}
+- "salman khan action clips" -> {"keywords": "salman khan action scenes", "intent": "search_youtube", "cast_name": "salman khan"}
 - "top 10 brilliant mind kind of movies" -> {"genres": ["Drama", "Thriller"], "min_rating": 7.0, "sort_by": "rating"}
 - "psychological thriller movies" -> {"genres": ["Thriller"]}
 - "lakshmi movies malayalam" -> {"cast_name": "lakshmi", "languages": ["Malayalam"]}
