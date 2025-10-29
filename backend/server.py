@@ -484,6 +484,9 @@ Extract and return JSON with:
 }
 
 Examples:
+- "conjuring" -> {"keywords": "conjuring", "intent": "search_movie"}
+- "inception" -> {"keywords": "inception", "intent": "search_movie"}
+- "dark knight" -> {"keywords": "dark knight", "intent": "search_movie"}
 - "vadivelu best comedy scenes" -> {"keywords": "vadivelu comedy scenes", "intent": "search_youtube", "cast_name": "vadivelu"}
 - "salman khan action clips" -> {"keywords": "salman khan action scenes", "intent": "search_youtube", "cast_name": "salman khan"}
 - "top 10 brilliant mind kind of movies" -> {"genres": ["Drama", "Thriller"], "min_rating": 7.0, "sort_by": "rating"}
