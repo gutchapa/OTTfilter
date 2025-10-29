@@ -196,65 +196,66 @@ function App() {
     <div className="min-h-screen bg-gradient-to-br from-teal-50 via-blue-50 to-cyan-50">
       {/* Header */}
       <header className="sticky top-0 z-50 backdrop-blur-md bg-white/80 border-b border-teal-200/50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent" style={{fontFamily: 'Playfair Display, serif'}}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 sm:py-4">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-teal-600 to-cyan-600 bg-clip-text text-transparent" style={{fontFamily: 'Playfair Display, serif'}}>
               StreamFilter
             </h1>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="text-teal-700 border-teal-300" data-testid="movie-count-badge">
+              <Badge variant="outline" className="text-teal-700 border-teal-300 text-xs sm:text-sm" data-testid="movie-count-badge">
                 {movies.length} Movies
               </Badge>
             </div>
           </div>
           
           {/* Search Bar */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1 w-full">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
               <Input
                 data-testid="search-input"
-                placeholder={useNaturalLanguage ? "Try: 'latest tamil movie with highest rating' or 'malayalam movies by Fahadh Faasil'" : "Search by movie name, actor, or director..."}
+                placeholder={useNaturalLanguage ? "Try: 'tamil movies by Vijay'" : "Search movies..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-10 pr-12 h-12 border-teal-200 focus:border-teal-400 focus:ring-teal-400"
+                className="pl-9 sm:pl-10 pr-12 sm:pr-14 h-11 sm:h-12 border-teal-200 focus:border-teal-400 focus:ring-teal-400 text-sm sm:text-base w-full"
               />
               {useNaturalLanguage && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                  <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
-                    <Sparkles className="w-3 h-3 mr-1" />
+                <div className="absolute right-2 sm:right-3 top-1/2 transform -translate-y-1/2">
+                  <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5">
+                    <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
                     AI
                   </Badge>
                 </div>
               )}
             </div>
-            <Button 
-              data-testid="search-button"
-              onClick={handleSearch} 
-              className="h-12 px-6 bg-teal-600 hover:bg-teal-700 text-white"
-            >
-              {useNaturalLanguage ? <Sparkles className="w-5 h-5 mr-2" /> : <Search className="w-5 h-5 mr-2" />}
-              Search
-            </Button>
-            
-            {/* Filter Sheet */}
-            <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-              <SheetTrigger asChild>
-                <Button 
-                  data-testid="filter-button"
-                  variant="outline" 
-                  className="h-12 px-6 border-teal-300 hover:bg-teal-50"
-                >
-                  <Filter className="w-5 h-5 mr-2" />
-                  Filters
-                  {(selectedGenres.length + selectedLanguages.length + selectedPlatforms.length) > 0 && (
-                    <Badge className="ml-2 bg-teal-600" data-testid="active-filters-badge">
-                      {selectedGenres.length + selectedLanguages.length + selectedPlatforms.length}
-                    </Badge>
-                  )}
-                </Button>
-              </SheetTrigger>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button 
+                data-testid="search-button"
+                onClick={handleSearch} 
+                className="flex-1 sm:flex-none h-11 sm:h-12 px-4 sm:px-6 bg-teal-600 hover:bg-teal-700 text-white text-sm sm:text-base"
+              >
+                {useNaturalLanguage ? <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" /> : <Search className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />}
+                <span className="hidden sm:inline">Search</span>
+              </Button>
+              
+              {/* Filter Sheet */}
+              <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+                <SheetTrigger asChild>
+                  <Button 
+                    data-testid="filter-button"
+                    variant="outline" 
+                    className="flex-1 sm:flex-none h-11 sm:h-12 px-4 sm:px-6 border-teal-300 hover:bg-teal-50 text-sm sm:text-base"
+                  >
+                    <Filter className="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" />
+                    <span className="hidden sm:inline">Filters</span>
+                    {(selectedGenres.length + selectedLanguages.length + selectedPlatforms.length) > 0 && (
+                      <Badge className="ml-1 sm:ml-2 bg-teal-600 text-xs" data-testid="active-filters-badge">
+                        {selectedGenres.length + selectedLanguages.length + selectedPlatforms.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </SheetTrigger>
               <SheetContent className="w-full sm:max-w-md overflow-y-auto" data-testid="filter-sheet">
                 <SheetHeader>
                   <SheetTitle className="text-2xl" style={{fontFamily: 'Playfair Display, serif'}}>Filters</SheetTitle>
