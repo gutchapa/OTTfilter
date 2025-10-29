@@ -575,9 +575,16 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 {'cast': {'$regex': parsed.cast_name, '$options': 'i'}},
                 {'director': {'$regex': parsed.cast_name, '$options': 'i'}}
             ]
+            
+            # Determine sort order
+            sort_field = 'popularity'
+            if parsed.sort_by == 'rating':
+                sort_field = 'rating'
+            elif parsed.sort_by == 'release_date':
+                sort_field = 'release_date'
         
         # Fetch movies from database first
-        movies = await db.movies.find(query, {'_id': 0}).sort(sort_field, -1).limit(30).to_list(30)
+        movies = await db.movies.find(query, {'_id': 0}).sort(sort_field if 'sort_field' in locals() else 'popularity', -1).limit(30).to_list(30)
         
         # If no movies found and cast_name is present, search TMDB
         if len(movies) == 0 and parsed.cast_name:
