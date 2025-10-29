@@ -520,10 +520,21 @@ function App() {
                     {/* Rating & Runtime */}
                     <div className="flex items-center gap-4 flex-wrap">
                       {selectedMovie.rating > 0 && (
+                        <div className="flex items-center gap-2 bg-teal-100 text-teal-900 px-3 py-2 rounded-lg">
+                          <Star className="w-5 h-5 fill-teal-900" />
+                          <div className="flex flex-col">
+                            <span className="font-bold text-lg">{selectedMovie.rating} / 10</span>
+                            <span className="text-xs opacity-75">TMDB</span>
+                          </div>
+                        </div>
+                      )}
+                      {selectedMovie.imdb_rating && (
                         <div className="flex items-center gap-2 bg-yellow-100 text-yellow-900 px-3 py-2 rounded-lg">
                           <Star className="w-5 h-5 fill-yellow-900" />
-                          <span className="font-bold text-lg">{selectedMovie.rating}</span>
-                          <span className="text-sm">/ 10</span>
+                          <div className="flex flex-col">
+                            <span className="font-bold text-lg">{selectedMovie.imdb_rating} / 10</span>
+                            <span className="text-xs opacity-75">IMDb</span>
+                          </div>
                         </div>
                       )}
                       {selectedMovie.runtime && (
