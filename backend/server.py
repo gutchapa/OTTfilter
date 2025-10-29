@@ -316,6 +316,7 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
             director=director,
             rating=round(details.get('vote_average', 0), 1),
             imdb_rating=round(imdb_rating, 1) if imdb_rating else None,
+            certification=certification,
             vote_count=details.get('vote_count', 0),
             release_date=details.get('release_date', ''),
             synopsis=details.get('overview', ''),
