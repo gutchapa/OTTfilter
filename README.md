@@ -2,7 +2,7 @@
 
 > Your intelligent movie discovery assistant across 10+ Indian OTT platforms
 
-**Live Demo:** https://streamfilter.preview.emergentagent.com
+**Live Demo:** https://ott-finder-1.preview.emergentagent.com
 
 ---
 
