@@ -700,6 +700,56 @@ function App() {
         </DialogContent>
       </Dialog>
     </div>
+
+
+      {/* Content Warnings Dialog */}
+      <Dialog open={showContentWarnings} onOpenChange={setShowContentWarnings}>
+        <DialogContent className="max-w-2xl" data-testid="content-warnings-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-2xl flex items-center gap-2" style={{fontFamily: 'Playfair Display, serif'}}>
+              <AlertCircle className="w-7 h-7 text-red-600" />
+              Content Details: {contentWarningsMovie?.title}
+            </DialogTitle>
+            <DialogDescription>
+              Why this movie is rated {contentWarningsMovie?.certification}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-6 space-y-4">
+            {contentWarningsMovie?.content_warnings && contentWarningsMovie.content_warnings.length > 0 ? (
+              <>
+                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                  <p className="text-sm text-red-800 font-semibold mb-2">
+                    This movie contains the following content:
+                  </p>
+                </div>
+                
+                <ul className="space-y-3">
+                  {contentWarningsMovie.content_warnings.map((warning, idx) => (
+                    <li key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-800">{warning}</span>
+                    </li>
+                  ))}
+                </ul>
+                
+                <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm text-blue-900">
+                    <strong>Note:</strong> These content warnings are generated based on the movie's rating, genre, and description. 
+                    Use parental discretion when deciding if this content is appropriate for your family.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <AlertCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                <p>No detailed content warnings available for this movie.</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
   );
 }
 
