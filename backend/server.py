@@ -244,6 +244,93 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
         return None
 
 
+
+# AI-powered Natural Language Processing
+async def parse_natural_language_query(query: str) -> ParsedQuery:
+    """Parse natural language query using OpenAI to extract filters"""
+    if not openai_client:
+        # Fallback: return basic query
+        return ParsedQuery(keywords=query)
+    
+    try:
+        system_prompt = """You are a movie search query parser. Extract structured filters from natural language queries.
+
+Available options:
+- Languages: Tamil, Hindi, Telugu, Malayalam, Kannada, English, Bengali, Marathi, Punjabi, Gujarati
+- Genres: Action, Adventure, Animation, Comedy, Crime, Drama, Fantasy, Horror, Music, Romance, Science Fiction, Thriller, War
+- Platforms: Netflix, Prime Video, Disney+ Hotstar, Jio Cinema, Zee5, SonyLIV, Voot, MX Player, Aha, Sun NXT
+
+Extract and return JSON with:
+{
+  "languages": ["Tamil"],  // if language mentioned
+  "genres": ["Romance", "Comedy"],  // if genre mentioned  
+  "platforms": ["Netflix"],  // if platform mentioned
+  "min_rating": 7.0,  // if rating mentioned (convert "highest rating" to 7.0)
+  "cast_name": "Rajinikanth",  // if actor/director name mentioned
+  "keywords": "keyword to search",  // for song names, movie names, or other keywords
+  "sort_by": "rating",  // "rating" if "highest/best" mentioned, "release_date" if "latest/recent" mentioned, else "popularity"
+  "intent": "search_song"  // "search_song" if asking about songs/soundtrack, else "search_movie"
+}
+
+Examples:
+- "latest tamil movie with highest rating" -> {"languages": ["Tamil"], "sort_by": "rating", "min_rating": 7.0}
+- "malayalam romance movies by Fahadh Faasil" -> {"languages": ["Malayalam"], "genres": ["Romance"], "cast_name": "Fahadh Faasil"}
+- "tamil movie with sollamale song" -> {"languages": ["Tamil"], "keywords": "sollamale", "intent": "search_song"}
+- "comedy genre by vijay" -> {"genres": ["Comedy"], "cast_name": "vijay"}
+
+Return only valid JSON, no explanations."""
+
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Parse this query: {query}"}
+            ],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+        
+        parsed_data = json.loads(response.choices[0].message.content)
+        return ParsedQuery(**parsed_data)
+        
+    except Exception as e:
+        logger.error(f"Error parsing natural language query: {str(e)}")
+        return ParsedQuery(keywords=query)
+
+
+# YouTube Integration
+def search_youtube_videos(query: str, max_results: int = 5) -> List[YouTubeVideo]:
+    """Search YouTube for videos"""
+    if not youtube_service:
+        return []
+    
+    try:
+        request = youtube_service.search().list(
+            part='snippet',
+            q=query,
+            type='video',
+            maxResults=max_results,
+            regionCode='IN'
+        )
+        response = request.execute()
+        
+        videos = []
+        for item in response.get('items', []):
+            video = YouTubeVideo(
+                video_id=item['id']['videoId'],
+                title=item['snippet']['title'],
+                thumbnail_url=item['snippet']['thumbnails']['medium']['url'],
+                channel_title=item['snippet']['channelTitle'],
+                url=f"https://www.youtube.com/watch?v={item['id']['videoId']}"
+            )
+            videos.append(video)
+        
+        return videos
+    except Exception as e:
+        logger.error(f"Error searching YouTube: {str(e)}")
+        return []
+
+
 @api_router.get("/discover")
 async def discover_movies(
     page: int = Query(1, ge=1),
