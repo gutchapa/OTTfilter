@@ -212,18 +212,27 @@ function App() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <Input
                 data-testid="search-input"
-                placeholder="Search by movie name, actor, or director..."
+                placeholder={useNaturalLanguage ? "Try: 'latest tamil movie with highest rating' or 'malayalam movies by Fahadh Faasil'" : "Search by movie name, actor, or director..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                className="pl-10 h-12 border-teal-200 focus:border-teal-400 focus:ring-teal-400"
+                className="pl-10 pr-12 h-12 border-teal-200 focus:border-teal-400 focus:ring-teal-400"
               />
+              {useNaturalLanguage && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <Badge variant="secondary" className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs">
+                    <Sparkles className="w-3 h-3 mr-1" />
+                    AI
+                  </Badge>
+                </div>
+              )}
             </div>
             <Button 
               data-testid="search-button"
               onClick={handleSearch} 
               className="h-12 px-6 bg-teal-600 hover:bg-teal-700 text-white"
             >
+              {useNaturalLanguage ? <Sparkles className="w-5 h-5 mr-2" /> : <Search className="w-5 h-5 mr-2" />}
               Search
             </Button>
             
