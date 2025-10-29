@@ -595,6 +595,49 @@ function App() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* YouTube Results Dialog */}
+      <Dialog open={showYoutubeDialog} onOpenChange={setShowYoutubeDialog}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto" data-testid="youtube-dialog">
+          <DialogHeader>
+            <DialogTitle className="text-3xl flex items-center gap-2" style={{fontFamily: 'Playfair Display, serif'}}>
+              <Youtube className="w-8 h-8 text-red-600" />
+              Related Videos
+            </DialogTitle>
+            <DialogDescription>
+              Trailers, songs, and scenes from YouTube
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="mt-6 space-y-4">
+            {youtubeResults.map((video, idx) => (
+              <a
+                key={idx}
+                href={video.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:border-teal-400 hover:shadow-lg transition-all group"
+              >
+                <img 
+                  src={video.thumbnail_url} 
+                  alt={video.title}
+                  className="w-40 h-24 object-cover rounded-lg"
+                />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg group-hover:text-teal-600 transition-colors line-clamp-2">
+                    {video.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">{video.channel_title}</p>
+                  <Badge variant="outline" className="mt-2 border-red-300 text-red-700">
+                    <Youtube className="w-3 h-3 mr-1" />
+                    Watch on YouTube
+                  </Badge>
+                </div>
+              </a>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
