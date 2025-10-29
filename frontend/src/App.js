@@ -587,7 +587,7 @@ function App() {
                     )}
                     
                     {/* Language & Release Date */}
-                    <div className="flex gap-6">
+                    <div className="flex gap-6 flex-wrap">
                       <div>
                         <h3 className="font-semibold mb-1">Language</h3>
                         <p className="text-gray-700">{selectedMovie.language}</p>
@@ -596,6 +596,25 @@ function App() {
                         <div>
                           <h3 className="font-semibold mb-1">Release Date</h3>
                           <p className="text-gray-700">{new Date(selectedMovie.release_date).toLocaleDateString()}</p>
+                        </div>
+                      )}
+                      {selectedMovie.certification && (
+                        <div>
+                          <h3 className="font-semibold mb-1">Content Rating</h3>
+                          <div className="flex items-center gap-2">
+                            <span className="bg-red-100 text-red-700 px-3 py-1 rounded font-bold border-2 border-red-300">
+                              {selectedMovie.certification}
+                            </span>
+                            <span className="text-xs text-gray-600">
+                              {selectedMovie.certification === 'U' && 'Universal - Suitable for all'}
+                              {selectedMovie.certification === 'U/A' && 'Parental Guidance - Under 12 needs adult'}
+                              {selectedMovie.certification === 'A' && 'Adults Only - 18+'}
+                              {selectedMovie.certification === 'PG' && 'Parental Guidance Suggested'}
+                              {selectedMovie.certification === 'PG-13' && 'Parents Strongly Cautioned - 13+'}
+                              {selectedMovie.certification === 'R' && 'Restricted - 17+ or with parent'}
+                              {!['U', 'U/A', 'A', 'PG', 'PG-13', 'R'].includes(selectedMovie.certification) && 'See rating details'}
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
