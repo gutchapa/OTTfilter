@@ -872,10 +872,10 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         else:
             movies_dicts.sort(key=lambda x: x.get('popularity', 0), reverse=True)
         
-        # If looking for songs/trailers, also get YouTube results for top movies
+        # If looking for songs/trailers ONLY, get YouTube results (not for theme descriptions)
         youtube_results = []
-        if youtube_service and movies_dicts and parsed.keywords:
-            # Get trailer/song for top movie
+        if youtube_service and movies_dicts and parsed.keywords and parsed.intent == "search_song":
+            # Only search YouTube if explicitly looking for songs
             top_movie = movies_dicts[0]
             yt_query = f"{top_movie['title']} {parsed.keywords}"
             youtube_results = search_youtube_videos(yt_query, max_results=5)
