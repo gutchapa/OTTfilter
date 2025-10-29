@@ -156,6 +156,29 @@ async def get_movie_details(tmdb_id: int):
     return await fetch_tmdb_data(f"/movie/{tmdb_id}")
 
 
+
+async def get_imdb_rating(imdb_id: str) -> Optional[float]:
+    """Get IMDb rating from OMDb API"""
+    if not OMDB_API_KEY or not imdb_id:
+        return None
+    
+    try:
+        params = {
+            'apikey': OMDB_API_KEY,
+            'i': imdb_id  # IMDb ID format: tt1234567
+        }
+        
+        response = await http_client.get(OMDB_BASE_URL, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('Response') == 'True' and data.get('imdbRating') != 'N/A':
+                return float(data['imdbRating'])
+    except Exception as e:
+        logger.error(f"Error fetching IMDb rating: {str(e)}")
+    
+    return None
+
+
 async def get_streaming_providers(tmdb_id: int):
     """Get streaming availability for India"""
     data = await fetch_tmdb_data(f"/movie/{tmdb_id}/watch/providers")
