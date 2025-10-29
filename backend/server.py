@@ -403,6 +403,19 @@ async def fuzzy_search_actor(name: str) -> Optional[Tuple[int, str]]:
         
         for variant in variations[1:]:  # Skip first as already tried
             search_params = {'query': variant, 'page': 1}
+            person_data = await fetch_tmdb_data('/search/person', search_params)
+            
+            if person_data and person_data.get('results'):
+                for person in person_data['results'][:3]:
+                    # Quick test
+                    test_params = {'with_cast': person['id'], 'page': 1}
+                    test_data = await fetch_tmdb_data('/discover/movie', test_params)
+                    
+                    if test_data and test_data.get('results') and len(test_data['results']) > 0:
+                        logger.info(f"Variation matched '{name}' to '{person['name']}'")
+                        return (person['id'], person['name'])
+    
+    return None
 
 
 async def correct_actor_name(misspelled_name: str) -> str:
