@@ -270,6 +270,12 @@ PLATFORM NAME VARIATIONS (user may say any of these):
 - "sony", "sonyliv", "sony liv" -> "SonyLIV"
 - If user mentions a platform, put it in platforms array, NOT in keywords
 
+ACTOR NAME DETECTION:
+- If query contains partial names like "lakshmi", "vijay", "fahadh" followed by "movies", treat it as cast_name
+- Single names like "rajini", "kamal", "dhanush" are often actor names, not keywords
+- Examples: "lakshmi movies" -> cast_name: "lakshmi"
+- Examples: "vijay tamil" -> cast_name: "vijay", languages: ["Tamil"]
+
 IMPORTANT: Users may have typos in actor names. Keep the name AS-IS in cast_name field.
 
 Extract and return JSON with:
@@ -278,13 +284,15 @@ Extract and return JSON with:
   "genres": ["Romance"],  // if genre mentioned  
   "platforms": ["Jio Cinema"],  // if ANY platform mentioned (check variations above)
   "min_rating": 7.0,  // if rating mentioned
-  "cast_name": "exact name from query",  // actor/director name EXACTLY as typed
-  "keywords": null,  // ONLY for song names or specific movie titles, NOT for platforms
+  "cast_name": "exact name from query",  // actor/director name EXACTLY as typed (even partial names)
+  "keywords": null,  // ONLY for song names or specific movie titles, NOT for platforms or actor names
   "sort_by": "release_date",  // "rating" if "highest/best", "release_date" if "latest/recent/new", else "popularity"
   "intent": "search_movie"
 }
 
 Examples:
+- "lakshmi movies malayalam" -> {"cast_name": "lakshmi", "languages": ["Malayalam"]}
+- "vijay movies" -> {"cast_name": "vijay"}
 - "jio star movies" -> {"platforms": ["Jio Cinema"]}
 - "latest tamil movies on netflix" -> {"languages": ["Tamil"], "platforms": ["Netflix"], "sort_by": "release_date"}
 - "fahid fasil latest movie" -> {"cast_name": "fahid fasil", "sort_by": "release_date"}
