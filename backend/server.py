@@ -115,7 +115,7 @@ class YouTubeVideo(BaseModel):
 
 # TMDB API Helper Functions
 async def fetch_tmdb_data(endpoint: str, params: dict = None):
-    """Fetch data from TMDB API"""
+    """Fetch data from TMDB API with connection pooling"""
     headers = {
         "Authorization": f"Bearer {TMDB_API_KEY}",
         "accept": "application/json"
@@ -123,13 +123,16 @@ async def fetch_tmdb_data(endpoint: str, params: dict = None):
     
     url = f"{TMDB_BASE_URL}{endpoint}"
     
-    async with httpx.AsyncClient() as client:
-        response = await client.get(url, headers=headers, params=params, timeout=30.0)
+    try:
+        response = await http_client.get(url, headers=headers, params=params)
         if response.status_code == 200:
             return response.json()
         else:
             logger.error(f"TMDB API Error: {response.status_code} - {response.text}")
             return None
+    except Exception as e:
+        logger.error(f"TMDB API Request Error: {str(e)}")
+        return None
 
 
 async def get_movie_credits(tmdb_id: int):
