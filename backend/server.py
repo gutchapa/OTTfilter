@@ -672,18 +672,21 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 movies = await db.movies.find(query, {'_id': 0}).sort('popularity', -1).limit(30).to_list(30)
         
         # Determine sort order and sort movies
+        # Convert Movie objects to dicts for easier handling
+        movies_dicts = [m.model_dump() if hasattr(m, 'model_dump') else m for m in movies]
+        
         if parsed.sort_by == 'rating':
-            movies.sort(key=lambda x: x.get('rating', 0), reverse=True)
+            movies_dicts.sort(key=lambda x: x.get('rating', 0), reverse=True)
         elif parsed.sort_by == 'release_date':
-            movies.sort(key=lambda x: x.get('release_date', ''), reverse=True)
+            movies_dicts.sort(key=lambda x: x.get('release_date', ''), reverse=True)
         else:
-            movies.sort(key=lambda x: x.get('popularity', 0), reverse=True)
+            movies_dicts.sort(key=lambda x: x.get('popularity', 0), reverse=True)
         
         # If looking for songs/trailers, also get YouTube results for top movies
         youtube_results = []
-        if youtube_service and movies and parsed.keywords:
+        if youtube_service and movies_dicts and parsed.keywords:
             # Get trailer/song for top movie
-            top_movie = movies[0]
+            top_movie = movies_dicts[0]
             yt_query = f"{top_movie['title']} {parsed.keywords}"
             youtube_results = search_youtube_videos(yt_query, max_results=5)
         
