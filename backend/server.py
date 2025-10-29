@@ -261,19 +261,16 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
     try:
         tmdb_id = movie_data['id']
         
-        # Fetch additional details concurrently (including IMDb rating)
-        imdb_id = details.get('imdb_id') if details else None
-        
         # Fetch all data concurrently
         fetch_tasks = [
             get_movie_details(tmdb_id),
             get_movie_credits(tmdb_id),
-            get_streaming_providers(tmdb_id)
+            get_streaming_providers(tmdb_id),
+            get_movie_certification(tmdb_id)
         ]
         
-        # Add IMDb rating fetch if we have details with imdb_id
         results = await asyncio.gather(*fetch_tasks)
-        details, (cast, director), providers = results
+        details, (cast, director), providers, certification = results
         
         if not details:
             return None
