@@ -496,22 +496,32 @@ async def discover_movies(
         
         results = data.get('results', [])[:20]  # Limit to 20 to avoid timeout
         
-        # Process movies (but don't wait for all)
+        # Process movies concurrently in larger batches for better performance
         movies = []
-        for i in range(0, len(results), 5):  # Process 5 at a time
-            batch = results[i:i+5]
+        batch_size = 10  # Increased from 5 to 10 for faster processing
+        for i in range(0, len(results), batch_size):
+            batch = results[i:i+batch_size]
             batch_movies = await asyncio.gather(
-                *[process_movie(movie_data) for movie_data in batch]
+                *[process_movie(movie_data) for movie_data in batch],
+                return_exceptions=True  # Don't fail entire batch if one movie fails
             )
-            movies.extend([m for m in batch_movies if m is not None])
+            # Filter out None and exceptions
+            movies.extend([m for m in batch_movies if m is not None and isinstance(m, Movie)])
         
-        # Store in database
-        for movie in movies:
-            await db.movies.update_one(
-                {'tmdb_id': movie.tmdb_id},
-                {'$set': movie.model_dump()},
-                upsert=True
-            )
+        # Batch insert into database for better performance
+        if movies:
+            bulk_operations = [
+                {
+                    'update_one': {
+                        'filter': {'tmdb_id': movie.tmdb_id},
+                        'update': {'$set': movie.model_dump()},
+                        'upsert': True
+                    }
+                }
+                for movie in movies
+            ]
+            if bulk_operations:
+                await db.movies.bulk_write([op['update_one'] for op in bulk_operations])
         
         return {
             'movies': movies,
