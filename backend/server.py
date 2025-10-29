@@ -575,7 +575,7 @@ async def get_filter_options():
         
         # Get unique languages
         languages = await db.movies.distinct('language')
-        languages = sorted([l for l in languages if l])
+        languages = sorted([lang for lang in languages if lang])
         
         # Get unique platforms
         platforms = await db.movies.distinct('ott_platforms')
