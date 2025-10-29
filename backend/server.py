@@ -211,6 +211,11 @@ async def get_movie_certification(tmdb_id: int) -> Optional[str]:
             # Return any available certification
             return list(certifications.values())[0]
         
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error fetching certification: {str(e)}")
+        return None
 
 
 async def generate_content_warnings(title: str, genres: List[str], synopsis: str, certification: Optional[str]) -> List[str]:
