@@ -510,18 +510,17 @@ async def discover_movies(
         
         # Batch insert into database for better performance
         if movies:
+            from pymongo import UpdateOne
             bulk_operations = [
-                {
-                    'update_one': {
-                        'filter': {'tmdb_id': movie.tmdb_id},
-                        'update': {'$set': movie.model_dump()},
-                        'upsert': True
-                    }
-                }
+                UpdateOne(
+                    {'tmdb_id': movie.tmdb_id},
+                    {'$set': movie.model_dump()},
+                    upsert=True
+                )
                 for movie in movies
             ]
             if bulk_operations:
-                await db.movies.bulk_write([op['update_one'] for op in bulk_operations])
+                await db.movies.bulk_write(bulk_operations)
         
         return {
             'movies': movies,
