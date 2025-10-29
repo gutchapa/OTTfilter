@@ -697,6 +697,63 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         limit = 100 if parsed.platforms else 50
         movies = await db.movies.find(query, {'_id': 0}).sort(sort_field if 'sort_field' in locals() else 'popularity', -1).limit(limit).to_list(limit)
         
+        # CRITICAL: If we have < 10 results from cache, fetch fresh from TMDB
+        if len(movies) < 10 and not parsed.cast_name:
+            logger.info(f"Only {len(movies)} cached results, fetching from TMDB...")
+            
+            # Build TMDB discover params
+            tmdb_params = {
+                'page': 1,
+                'sort_by': 'popularity.desc' if parsed.sort_by == 'popularity' else f'{parsed.sort_by}.desc',
+                'region': 'IN'
+            }
+            
+            if parsed.languages:
+                lang_code_map = {'Tamil': 'ta', 'Hindi': 'hi', 'Telugu': 'te', 'Malayalam': 'ml', 'Kannada': 'kn', 'English': 'en'}
+                lang_code = lang_code_map.get(parsed.languages[0], 'en')
+                tmdb_params['with_original_language'] = lang_code
+            
+            if parsed.genres:
+                # Map genre names to TMDB IDs
+                genre_map = {
+                    'Action': 28, 'Adventure': 12, 'Animation': 16, 'Comedy': 35,
+                    'Crime': 80, 'Drama': 18, 'Fantasy': 14, 'Horror': 27,
+                    'Music': 10402, 'Romance': 10749, 'Science Fiction': 878,
+                    'Thriller': 53, 'War': 10752
+                }
+                genre_ids = [str(genre_map.get(g)) for g in parsed.genres if g in genre_map]
+                if genre_ids:
+                    tmdb_params['with_genres'] = ','.join(genre_ids)
+            
+            if parsed.min_rating:
+                tmdb_params['vote_average.gte'] = parsed.min_rating
+                tmdb_params['vote_count.gte'] = 50  # Ensure movies have enough votes
+            
+            # Fetch from TMDB
+            tmdb_data = await fetch_tmdb_data('/discover/movie', tmdb_params)
+            
+            if tmdb_data and tmdb_data.get('results'):
+                logger.info(f"TMDB returned {len(tmdb_data['results'])} movies")
+                # Process up to 20 movies
+                batch_size = 10
+                results = tmdb_data['results'][:20]
+                
+                for i in range(0, len(results), batch_size):
+                    batch = results[i:i+batch_size]
+                    batch_movies = await asyncio.gather(
+                        *[process_movie(movie_data) for movie_data in batch],
+                        return_exceptions=True
+                    )
+                    for m in batch_movies:
+                        if m is not None and isinstance(m, Movie):
+                            movies.append(m)
+                            # Cache it
+                            await db.movies.update_one(
+                                {'tmdb_id': m.tmdb_id},
+                                {'$set': m.model_dump()},
+                                upsert=True
+                            )
+        
         # CRITICAL FIX: If searching by cast_name, filter to only movies where actor is in top 5 (leads)
         # And prioritize movies where they're in top 2 (main leads)
         if parsed.cast_name and len(movies) > 0:
