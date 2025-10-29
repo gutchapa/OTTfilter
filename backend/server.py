@@ -680,19 +680,33 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         movies = await db.movies.find(query, {'_id': 0}).sort(sort_field if 'sort_field' in locals() else 'popularity', -1).limit(limit).to_list(limit)
         
         # CRITICAL FIX: If searching by cast_name, filter to only movies where actor is in top 5 (leads)
+        # And prioritize movies where they're in top 2 (main leads)
         if parsed.cast_name and len(movies) > 0:
-            filtered_movies = []
-            for movie in movies:
-                # Check if actor name is in top 5 cast OR is director
-                top_cast = movie.get('cast', [])[:5]  # Only check first 5 (leads)
-                is_lead = any(parsed.cast_name.lower() in actor.lower() for actor in top_cast)
-                is_director = parsed.cast_name.lower() in (movie.get('director', '') or '').lower()
-                
-                if is_lead or is_director:
-                    filtered_movies.append(movie)
+            lead_movies = []  # Movies where actor is in top 2
+            supporting_movies = []  # Movies where actor is in top 3-5
             
-            movies = filtered_movies
-            logger.info(f"Filtered to {len(movies)} movies where '{parsed.cast_name}' is lead actor/director")
+            for movie in movies:
+                cast = movie.get('cast', [])
+                director = (movie.get('director', '') or '').lower()
+                name_lower = parsed.cast_name.lower()
+                
+                # Check if director
+                if name_lower in director:
+                    lead_movies.append(movie)
+                    continue
+                
+                # Find position in cast
+                for idx, actor in enumerate(cast[:5]):
+                    if name_lower in actor.lower():
+                        if idx < 2:  # Top 2 = main leads
+                            lead_movies.append(movie)
+                        else:  # Position 3-5 = supporting
+                            supporting_movies.append(movie)
+                        break
+            
+            # Prioritize lead movies, then supporting
+            movies = lead_movies + supporting_movies
+            logger.info(f"Filtered: {len(lead_movies)} lead roles, {len(supporting_movies)} supporting roles for '{parsed.cast_name}'")
         
         # If no movies found and cast_name is present, try name correction then search TMDB
         if len(movies) == 0 and parsed.cast_name:
