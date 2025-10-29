@@ -588,20 +588,34 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         
         # If no movies found and cast_name is present, search TMDB
         if len(movies) == 0 and parsed.cast_name:
-            # Search TMDB for this actor
-            search_params = {
-                'query': parsed.cast_name,
-                'page': 1
-            }
-            person_data = await fetch_tmdb_data('/search/person', search_params)
+            # Search TMDB for this actor (try multiple variations)
+            search_queries = [parsed.cast_name]
             
-            if person_data and person_data.get('results'):
-                person_id = person_data['results'][0]['id']
+            # Try common variations for fuzzy matching
+            name_parts = parsed.cast_name.lower().split()
+            if len(name_parts) >= 2:
+                # Try different orderings and variations
+                search_queries.append(' '.join(name_parts[::-1]))  # Reverse order
+            
+            person_id = None
+            person_name = None
+            
+            for query in search_queries:
+                search_params = {'query': query, 'page': 1}
+                person_data = await fetch_tmdb_data('/search/person', search_params)
                 
+                if person_data and person_data.get('results') and len(person_data['results']) > 0:
+                    # Take the most popular result (first one)
+                    person_id = person_data['results'][0]['id']
+                    person_name = person_data['results'][0]['name']
+                    logger.info(f"Found person: {person_name} (ID: {person_id}) for query: {query}")
+                    break
+            
+            if person_id:
                 # Get movies by this person
                 discover_params = {
                     'with_cast': person_id,
-                    'sort_by': 'popularity.desc',
+                    'sort_by': 'release_date.desc' if parsed.sort_by == 'release_date' else 'popularity.desc',
                     'page': 1
                 }
                 if parsed.languages:
@@ -612,8 +626,9 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 movies_data = await fetch_tmdb_data('/discover/movie', discover_params)
                 
                 if movies_data and movies_data.get('results'):
-                    # Process and cache these movies
-                    for movie_data in movies_data['results'][:10]:
+                    logger.info(f"Found {len(movies_data['results'])} movies for {person_name}")
+                    # Process and cache these movies (process all results, not just 10)
+                    for movie_data in movies_data['results']:
                         movie = await process_movie(movie_data)
                         if movie:
                             movies.append(movie)
