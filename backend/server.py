@@ -838,8 +838,19 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 movies = await db.movies.find(query, {'_id': 0}).sort('popularity', -1).limit(30).to_list(30)
         
         # Determine sort order and sort movies
-        # Convert Movie objects to dicts for easier handling
-        movies_dicts = [m.model_dump() if hasattr(m, 'model_dump') else m for m in movies]
+        # Convert Movie objects to dicts for easier handling and remove duplicates
+        seen_tmdb_ids = set()
+        unique_movies = []
+        
+        for m in movies:
+            movie_dict = m.model_dump() if hasattr(m, 'model_dump') else m
+            tmdb_id = movie_dict.get('tmdb_id')
+            
+            if tmdb_id not in seen_tmdb_ids:
+                seen_tmdb_ids.add(tmdb_id)
+                unique_movies.append(movie_dict)
+        
+        movies_dicts = unique_movies
         
         if parsed.sort_by == 'rating':
             movies_dicts.sort(key=lambda x: x.get('rating', 0), reverse=True)
