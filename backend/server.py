@@ -924,36 +924,49 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         if len(movies) < 10 and not parsed.cast_name:
             logger.info(f"Only {len(movies)} cached results, fetching from TMDB...")
             
-            # Build TMDB discover params
-            tmdb_params = {
-                'page': 1,
-                'sort_by': 'popularity.desc' if parsed.sort_by == 'popularity' else f'{parsed.sort_by}.desc',
-                'region': 'IN'
-            }
-            
-            if parsed.languages:
-                lang_code_map = {'Tamil': 'ta', 'Hindi': 'hi', 'Telugu': 'te', 'Malayalam': 'ml', 'Kannada': 'kn', 'English': 'en'}
-                lang_code = lang_code_map.get(parsed.languages[0], 'en')
-                tmdb_params['with_original_language'] = lang_code
-            
-            if parsed.genres:
-                # Map genre names to TMDB IDs
-                genre_map = {
-                    'Action': 28, 'Adventure': 12, 'Animation': 16, 'Comedy': 35,
-                    'Crime': 80, 'Drama': 18, 'Fantasy': 14, 'Horror': 27,
-                    'Music': 10402, 'Romance': 10749, 'Science Fiction': 878,
-                    'Thriller': 53, 'War': 10752
+            # If searching by movie title (keywords), use TMDB search, not discover
+            if parsed.keywords and parsed.intent == "search_movie":
+                search_params = {
+                    'query': parsed.keywords,
+                    'page': 1
                 }
-                genre_ids = [str(genre_map.get(g)) for g in parsed.genres if g in genre_map]
-                if genre_ids:
-                    tmdb_params['with_genres'] = ','.join(genre_ids)
-            
-            if parsed.min_rating:
-                tmdb_params['vote_average.gte'] = parsed.min_rating
-                tmdb_params['vote_count.gte'] = 50  # Ensure movies have enough votes
-            
-            # Fetch from TMDB
-            tmdb_data = await fetch_tmdb_data('/discover/movie', tmdb_params)
+                if parsed.languages:
+                    lang_code_map = {'Tamil': 'ta', 'Hindi': 'hi', 'Telugu': 'te', 'Malayalam': 'ml', 'Kannada': 'kn', 'English': 'en'}
+                    lang_code = lang_code_map.get(parsed.languages[0], 'en')
+                    search_params['language'] = lang_code
+                
+                tmdb_data = await fetch_tmdb_data('/search/movie', search_params)
+            else:
+                # Build TMDB discover params for genre/language/platform filters
+                tmdb_params = {
+                    'page': 1,
+                    'sort_by': 'popularity.desc' if parsed.sort_by == 'popularity' else f'{parsed.sort_by}.desc',
+                    'region': 'IN'
+                }
+                
+                if parsed.languages:
+                    lang_code_map = {'Tamil': 'ta', 'Hindi': 'hi', 'Telugu': 'te', 'Malayalam': 'ml', 'Kannada': 'kn', 'English': 'en'}
+                    lang_code = lang_code_map.get(parsed.languages[0], 'en')
+                    tmdb_params['with_original_language'] = lang_code
+                
+                if parsed.genres:
+                    # Map genre names to TMDB IDs
+                    genre_map = {
+                        'Action': 28, 'Adventure': 12, 'Animation': 16, 'Comedy': 35,
+                        'Crime': 80, 'Drama': 18, 'Fantasy': 14, 'Horror': 27,
+                        'Music': 10402, 'Romance': 10749, 'Science Fiction': 878,
+                        'Thriller': 53, 'War': 10752
+                    }
+                    genre_ids = [str(genre_map.get(g)) for g in parsed.genres if g in genre_map]
+                    if genre_ids:
+                        tmdb_params['with_genres'] = ','.join(genre_ids)
+                
+                if parsed.min_rating:
+                    tmdb_params['vote_average.gte'] = parsed.min_rating
+                    tmdb_params['vote_count.gte'] = 50  # Ensure movies have enough votes
+                
+                # Fetch from TMDB
+                tmdb_data = await fetch_tmdb_data('/discover/movie', tmdb_params)
             
             if tmdb_data and tmdb_data.get('results'):
                 logger.info(f"TMDB returned {len(tmdb_data['results'])} movies")
