@@ -456,6 +456,13 @@ THEME/DESCRIPTION UNDERSTANDING (IMPORTANT):
 - "inspiring", "biographical" -> genres: ["Drama"]
 - ONLY use keywords for ACTUAL song names or specific movie titles, not descriptions
 
+MOVIE TITLE SEARCH (CRITICAL):
+- If user types a single word or phrase that could be a movie name, put it in keywords
+- Examples: "conjuring" -> keywords: "conjuring", intent: "search_movie"
+- Examples: "inception" -> keywords: "inception", intent: "search_movie"  
+- Examples: "dark knight" -> keywords: "dark knight", intent: "search_movie"
+- Do NOT confuse movie titles with themes/genres
+
 IMPORTANT: Users may have typos in actor names. Keep the name AS-IS in cast_name field.
 
 COMEDY SCENES & CLIPS (IMPORTANT):
@@ -470,9 +477,10 @@ Extract and return JSON with:
   "platforms": ["Jio Cinema"],  // if ANY platform mentioned (check variations above)
   "min_rating": 7.0,  // if rating mentioned, or 7.0 for "top/best"
   "cast_name": "exact name from query",  // actor/director name EXACTLY as typed (even partial names)
-  "keywords": "comedy scenes",  // for song names, movie titles, OR scene/clip searches
+  "keywords": "movie title",  // for song names, specific MOVIE TITLES, OR scene/clip searches
   "sort_by": "release_date",  // "rating" if "highest/best/top", "release_date" if "latest/recent/new", else "popularity"
-  "intent": "search_youtube"  // "search_song" for songs, "search_youtube" for scenes/clips, else "search_movie"
+  "intent": "search_movie"  // "search_song" for songs, "search_youtube" for scenes/clips, "search_movie" for titles
+
 }
 
 Examples:
