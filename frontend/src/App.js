@@ -49,6 +49,8 @@ function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [youtubeResults, setYoutubeResults] = useState([]);
   const [showYoutubeDialog, setShowYoutubeDialog] = useState(false);
+  const [showContentWarnings, setShowContentWarnings] = useState(false);
+  const [contentWarningsMovie, setContentWarningsMovie] = useState(null);
   const [useNaturalLanguage, setUseNaturalLanguage] = useState(true);
   const [filterOptions, setFilterOptions] = useState({
     genres: [],
