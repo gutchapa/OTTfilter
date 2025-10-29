@@ -97,8 +97,40 @@ function App() {
     
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/search?q=${encodeURIComponent(searchQuery)}`);
-      setMovies(res.data);
+      
+      if (useNaturalLanguage) {
+        // Use AI-powered natural language search
+        const res = await axios.post(`${API}/natural-search`, {
+          query: searchQuery
+        });
+        
+        setMovies(res.data.movies || []);
+        
+        // If YouTube results available, show them
+        if (res.data.youtube_results && res.data.youtube_results.length > 0) {
+          setYoutubeResults(res.data.youtube_results);
+          setShowYoutubeDialog(true);
+        }
+        
+        // Show what was understood
+        const parsed = res.data.parsed_query;
+        let understood = [];
+        if (parsed.languages) understood.push(`Language: ${parsed.languages.join(', ')}`);
+        if (parsed.genres) understood.push(`Genre: ${parsed.genres.join(', ')}`);
+        if (parsed.cast_name) understood.push(`Artist: ${parsed.cast_name}`);
+        if (parsed.min_rating) understood.push(`Min Rating: ${parsed.min_rating}`);
+        
+        if (understood.length > 0) {
+          toast.success(`Found ${res.data.movies.length} movies - ${understood.join(' | ')}`);
+        } else {
+          toast.success(`Found ${res.data.movies.length} movies`);
+        }
+      } else {
+        // Simple keyword search
+        const res = await axios.get(`${API}/search?q=${encodeURIComponent(searchQuery)}`);
+        setMovies(res.data);
+        toast.success(`Found ${res.data.length} movies`);
+      }
     } catch (error) {
       console.error('Error searching:', error);
       toast.error('Search failed');
