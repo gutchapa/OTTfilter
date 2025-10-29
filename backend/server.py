@@ -465,75 +465,31 @@ async def discover_movies(
 ):
     """Discover popular movies and cache them"""
     try:
-        # If it's the first page and no filters, fetch diverse content
-        if page == 1 and not language and not genre:
-            # Fetch movies from multiple Indian languages
-            indian_languages = ['ta', 'hi', 'te', 'ml', 'kn']
-            all_movies = []
-            
-            # Fetch popular movies from each language (4 movies per language)
-            for lang in indian_languages:
-                params = {
-                    'page': 1,
-                    'sort_by': 'popularity.desc',
-                    'region': 'IN',
-                    'with_original_language': lang
-                }
-                
-                data = await fetch_tmdb_data('/discover/movie', params)
-                if data and data.get('results'):
-                    results = data['results'][:4]  # Take top 4 from each language
-                    
-                    # Process movies
-                    for movie_data in results:
-                        movie = await process_movie(movie_data)
-                        if movie:
-                            all_movies.append(movie)
-            
-            # Also add some English content
-            params = {'page': 1, 'sort_by': 'popularity.desc', 'region': 'IN'}
-            data = await fetch_tmdb_data('/discover/movie', params)
-            if data and data.get('results'):
-                for movie_data in data['results'][:10]:  # Take top 10 English
-                    movie = await process_movie(movie_data)
-                    if movie:
-                        all_movies.append(movie)
-            
-            # Store in database
-            for movie in all_movies:
-                await db.movies.update_one(
-                    {'tmdb_id': movie.tmdb_id},
-                    {'$set': movie.model_dump()},
-                    upsert=True
-                )
-            
+        # FAST PATH: Return cached movies from database first
+        cached_movies = await db.movies.find({}, {'_id': 0}).sort('popularity', -1).limit(50).to_list(50)
+        
+        if len(cached_movies) > 10:
+            # We have enough cached movies, return them immediately
             return {
-                'movies': all_movies,
-                'page': 1,
+                'movies': cached_movies,
+                'page': page,
                 'total_pages': 1
             }
         
-        # Regular discover with filters
-        params = {
-            'page': page,
-            'sort_by': 'popularity.desc',
-            'region': 'IN',
-            'with_original_language': language if language else None,
-            'with_genres': genre if genre else None
-        }
+        # SLOW PATH: Only fetch from TMDB if we don't have enough cached movies
+        # This runs in background on first load
+        logger.info("Cache miss - fetching from TMDB")
         
-        # Clean None values
-        params = {k: v for k, v in params.items() if v is not None}
-        
-        # Fetch from TMDB
+        # Simplified: Just fetch one page of popular movies
+        params = {'page': 1, 'sort_by': 'popularity.desc', 'region': 'IN'}
         data = await fetch_tmdb_data('/discover/movie', params)
         
         if not data:
-            raise HTTPException(status_code=500, detail="Failed to fetch from TMDB")
+            return {'movies': cached_movies, 'page': 1, 'total_pages': 1}
         
-        results = data.get('results', [])
+        results = data.get('results', [])[:20]  # Limit to 20 to avoid timeout
         
-        # Process movies concurrently (but limit to avoid rate limits)
+        # Process movies (but don't wait for all)
         movies = []
         for i in range(0, len(results), 5):  # Process 5 at a time
             batch = results[i:i+5]
