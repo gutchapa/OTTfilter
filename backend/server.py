@@ -38,6 +38,12 @@ openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 YOUTUBE_API_KEY = os.environ.get('YOUTUBE_API_KEY', '')
 youtube_service = build('youtube', 'v3', developerKey=YOUTUBE_API_KEY) if YOUTUBE_API_KEY else None
 
+# Shared HTTP client with connection pooling for better performance
+http_client = httpx.AsyncClient(
+    limits=httpx.Limits(max_keepalive_connections=20, max_connections=50),
+    timeout=httpx.Timeout(30.0)
+)
+
 # Create the main app
 app = FastAPI()
 
