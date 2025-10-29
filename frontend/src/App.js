@@ -699,8 +699,6 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-
 
       {/* Content Warnings Dialog */}
       <Dialog open={showContentWarnings} onOpenChange={setShowContentWarnings}>
@@ -749,7 +747,7 @@ function App() {
           </div>
         </DialogContent>
       </Dialog>
-
+    </div>
   );
 }
 
