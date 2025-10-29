@@ -675,54 +675,23 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         
         # If no movies found and cast_name is present, search TMDB
         if len(movies) == 0 and parsed.cast_name:
-            # Search TMDB for this actor (try multiple variations)
-            search_queries = [parsed.cast_name]
+            # Use fuzzy search for actor
+            result = await fuzzy_search_actor(parsed.cast_name)
             
-            # Try common variations for fuzzy matching
-            name_parts = parsed.cast_name.lower().split()
-            if len(name_parts) >= 2:
-                # Try different orderings and variations
-                search_queries.append(' '.join(name_parts[::-1]))  # Reverse order
-            
-            person_id = None
-            person_name = None
-            
-            for query in search_queries:
-                search_params = {'query': query, 'page': 1}
-                person_data = await fetch_tmdb_data('/search/person', search_params)
-                
-                if person_data and person_data.get('results') and len(person_data['results']) > 0:
-                    # Try each result until we find one with movies
-                    for person in person_data['results'][:3]:  # Check top 3 results
-                        test_person_id = person['id']
-                        # Quick test if this person has movies
-                        test_params = {'with_cast': test_person_id, 'page': 1}
-                        test_data = await fetch_tmdb_data('/discover/movie', test_params)
-                        
-                        if test_data and test_data.get('results') and len(test_data['results']) > 0:
-                            person_id = test_person_id
-                            person_name = person['name']
-                            logger.info(f"Found person: {person_name} (ID: {person_id}) with movies")
-                            break
-                    
-                    if person_id:
-                        break
-            
-            if person_id:
+            if result:
+                person_id, person_name = result
                 # Get movies by this person
                 discover_params = {
                     'with_cast': person_id,
                     'sort_by': 'release_date.desc' if parsed.sort_by == 'release_date' else 'popularity.desc',
                     'page': 1
                 }
-                # Only add language filter if user explicitly mentioned it (not AI-inferred)
-                # This prevents missing movies due to wrong language inference
                 
                 movies_data = await fetch_tmdb_data('/discover/movie', discover_params)
                 
                 if movies_data and movies_data.get('results'):
                     logger.info(f"Found {len(movies_data['results'])} movies for {person_name}")
-                    # Process and cache these movies (process all results, not just 10)
+                    # Process and cache these movies
                     for movie_data in movies_data['results']:
                         movie = await process_movie(movie_data)
                         if movie:
