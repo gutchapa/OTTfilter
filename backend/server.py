@@ -175,6 +175,44 @@ async def get_imdb_rating(imdb_id: str) -> Optional[float]:
             if data.get('Response') == 'True' and data.get('imdbRating') != 'N/A':
                 return float(data['imdbRating'])
     except Exception as e:
+
+
+async def get_movie_certification(tmdb_id: int) -> Optional[str]:
+    """Get movie certification/rating (PG, PG-13, R, U/A, etc.) from TMDB"""
+    try:
+        data = await fetch_tmdb_data(f'/movie/{tmdb_id}/release_dates')
+        
+        if not data or 'results' not in data:
+            return None
+        
+        # Priority: India (IN) > United States (US) > Any available
+        certifications = {}
+        
+        for country_data in data['results']:
+            country = country_data['iso_3166_1']
+            release_dates = country_data.get('release_dates', [])
+            
+            for release in release_dates:
+                cert = release.get('certification', '').strip()
+                if cert:
+                    certifications[country] = cert
+                    break
+        
+        # Return in priority order
+        if 'IN' in certifications:
+            return certifications['IN']
+        elif 'US' in certifications:
+            return certifications['US']
+        elif certifications:
+            # Return any available certification
+            return list(certifications.values())[0]
+        
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error fetching certification: {str(e)}")
+        return None
+
         logger.error(f"Error fetching IMDb rating: {str(e)}")
     
     return None
