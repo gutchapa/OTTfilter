@@ -570,10 +570,52 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             query['rating'] = {'$gte': parsed.min_rating}
         
         if parsed.cast_name:
+            # First, try to find in database
             query['$or'] = [
                 {'cast': {'$regex': parsed.cast_name, '$options': 'i'}},
                 {'director': {'$regex': parsed.cast_name, '$options': 'i'}}
             ]
+        
+        # Fetch movies from database first
+        movies = await db.movies.find(query, {'_id': 0}).sort(sort_field, -1).limit(30).to_list(30)
+        
+        # If no movies found and cast_name is present, search TMDB
+        if len(movies) == 0 and parsed.cast_name:
+            # Search TMDB for this actor
+            search_params = {
+                'query': parsed.cast_name,
+                'page': 1
+            }
+            person_data = await fetch_tmdb_data('/search/person', search_params)
+            
+            if person_data and person_data.get('results'):
+                person_id = person_data['results'][0]['id']
+                
+                # Get movies by this person
+                discover_params = {
+                    'with_cast': person_id,
+                    'sort_by': 'popularity.desc',
+                    'page': 1
+                }
+                if parsed.languages:
+                    lang_code_map = {'Tamil': 'ta', 'Hindi': 'hi', 'Telugu': 'te', 'Malayalam': 'ml', 'Kannada': 'kn', 'English': 'en'}
+                    lang_code = lang_code_map.get(parsed.languages[0], 'en')
+                    discover_params['with_original_language'] = lang_code
+                
+                movies_data = await fetch_tmdb_data('/discover/movie', discover_params)
+                
+                if movies_data and movies_data.get('results'):
+                    # Process and cache these movies
+                    for movie_data in movies_data['results'][:10]:
+                        movie = await process_movie(movie_data)
+                        if movie:
+                            movies.append(movie)
+                            # Cache in database
+                            await db.movies.update_one(
+                                {'tmdb_id': movie.tmdb_id},
+                                {'$set': movie.model_dump()},
+                                upsert=True
+                            )
         
         if parsed.keywords and not parsed.cast_name:
             if '$or' in query:
