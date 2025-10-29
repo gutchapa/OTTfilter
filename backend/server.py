@@ -285,21 +285,33 @@ ACTOR NAME DETECTION:
 - Examples: "lakshmi movies" -> cast_name: "lakshmi"
 - Examples: "vijay tamil" -> cast_name: "vijay", languages: ["Tamil"]
 
+THEME/DESCRIPTION UNDERSTANDING (IMPORTANT):
+- If user describes movie themes/topics, map to appropriate genres, NOT keywords
+- "brilliant mind", "genius", "intellectual" -> genres: ["Drama", "Thriller"] (NOT keywords)
+- "mind-bending", "psychological" -> genres: ["Thriller", "Science Fiction"]
+- "emotional", "heart-touching" -> genres: ["Drama", "Romance"]
+- "funny", "comedy" -> genres: ["Comedy"]
+- "scary", "horror" -> genres: ["Horror"]
+- "inspiring", "biographical" -> genres: ["Drama"]
+- ONLY use keywords for ACTUAL song names or specific movie titles, not descriptions
+
 IMPORTANT: Users may have typos in actor names. Keep the name AS-IS in cast_name field.
 
 Extract and return JSON with:
 {
   "languages": ["Tamil"],  // if language mentioned
-  "genres": ["Romance"],  // if genre mentioned  
+  "genres": ["Drama", "Thriller"],  // if genre OR theme/description mentioned
   "platforms": ["Jio Cinema"],  // if ANY platform mentioned (check variations above)
-  "min_rating": 7.0,  // if rating mentioned
+  "min_rating": 7.0,  // if rating mentioned, or 7.0 for "top/best"
   "cast_name": "exact name from query",  // actor/director name EXACTLY as typed (even partial names)
-  "keywords": null,  // ONLY for song names or specific movie titles, NOT for platforms or actor names
-  "sort_by": "release_date",  // "rating" if "highest/best", "release_date" if "latest/recent/new", else "popularity"
+  "keywords": null,  // ONLY for actual song names or specific movie titles
+  "sort_by": "release_date",  // "rating" if "highest/best/top", "release_date" if "latest/recent/new", else "popularity"
   "intent": "search_movie"
 }
 
 Examples:
+- "top 10 brilliant mind kind of movies" -> {"genres": ["Drama", "Thriller"], "min_rating": 7.0, "sort_by": "rating"}
+- "psychological thriller movies" -> {"genres": ["Thriller"]}
 - "lakshmi movies malayalam" -> {"cast_name": "lakshmi", "languages": ["Malayalam"]}
 - "vijay movies" -> {"cast_name": "vijay"}
 - "jio star movies" -> {"platforms": ["Jio Cinema"]}
@@ -307,6 +319,7 @@ Examples:
 - "fahid fasil latest movie" -> {"cast_name": "fahid fasil", "sort_by": "release_date"}
 - "tamil movie with sollamale song" -> {"languages": ["Tamil"], "keywords": "sollamale", "intent": "search_song"}
 - "prime video action movies" -> {"platforms": ["Prime Video"], "genres": ["Action"]}
+- "inspiring biographical movies" -> {"genres": ["Drama"], "min_rating": 7.0}
 
 Return only valid JSON, no explanations."""
 
