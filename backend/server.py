@@ -822,19 +822,33 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         # Parse the natural language query
         parsed = await parse_natural_language_query(nl_query.query)
         
-        # If intent is to search for songs, use YouTube
-        if parsed.intent == "search_song" and parsed.keywords:
-            youtube_query = f"{parsed.keywords} song"
+        # If intent is YouTube search (songs, comedy scenes, clips), use YouTube
+        if parsed.intent in ["search_song", "search_youtube"] and parsed.keywords:
+            youtube_query = parsed.keywords
+            if parsed.intent == "search_song":
+                youtube_query = f"{parsed.keywords} song"
+            
             if parsed.languages:
                 youtube_query += f" {parsed.languages[0]}"
             
-            youtube_videos = search_youtube_videos(youtube_query, max_results=10)
+            youtube_videos = search_youtube_videos(youtube_query, max_results=15)
+            
+            # Also search for movies if cast_name present
+            movies = []
+            if parsed.cast_name:
+                query = {
+                    '$or': [
+                        {'cast': {'$regex': parsed.cast_name, '$options': 'i'}},
+                        {'director': {'$regex': parsed.cast_name, '$options': 'i'}}
+                    ]
+                }
+                movies = await db.movies.find(query, {'_id': 0}).sort('popularity', -1).limit(10).to_list(10)
             
             return {
                 "intent": "youtube_search",
                 "parsed_query": parsed.model_dump(),
                 "youtube_results": [v.model_dump() for v in youtube_videos],
-                "movies": []
+                "movies": movies
             }
         
         # Build MongoDB query for movie search
