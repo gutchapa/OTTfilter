@@ -629,7 +629,15 @@ Return only valid JSON, no explanations."""
         )
 
         parsed_data = json.loads(response.choices[0].message.content)
-        return ParsedQuery(**parsed_data)
+
+        # DEBUG LOGGING: Log what OpenAI returned
+        logger.info(f"🔍 QUERY: '{query}'")
+        logger.info(f"🤖 OPENAI PARSED: {json.dumps(parsed_data, indent=2)}")
+
+        parsed_query = ParsedQuery(**parsed_data)
+        logger.info(f"📋 FINAL PARSED: {parsed_query.model_dump()}")
+
+        return parsed_query
 
     except Exception as e:
         logger.error(f"Error parsing natural language query: {str(e)}")
@@ -1058,6 +1066,9 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             elif parsed.sort_by == "release_date":
                 sort_field = "release_date"
 
+        # DEBUG LOGGING: Log MongoDB query
+        logger.info(f"🗄️  MONGODB QUERY: {json.dumps(query, default=str)}")
+
         # Fetch movies from database first
         # Increase limit if filtering by platform (they should have many movies)
         limit = 100 if parsed.platforms else 50
@@ -1068,9 +1079,11 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             .to_list(limit)
         )
 
+        logger.info(f"📊 MONGODB RESULTS: {len(movies)} movies found")
+
         # CRITICAL: If we have < 10 results from cache, fetch fresh from TMDB
         if len(movies) < 10 and not parsed.cast_name:
-            logger.info(f"Only {len(movies)} cached results, fetching from TMDB...")
+            logger.info(f"⚠️  Only {len(movies)} cached results, fetching from TMDB...")
 
             # If searching by movie title (keywords), use TMDB search, not discover
             if parsed.keywords and parsed.intent == "search_movie":
@@ -1091,6 +1104,7 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 if parsed.release_year:
                     search_params["year"] = parsed.release_year
 
+                logger.info(f"🎬 TMDB SEARCH: /search/movie with {search_params}")
                 tmdb_data = await fetch_tmdb_data("/search/movie", search_params)
             else:
                 # Build TMDB discover params for genre/language/platform filters
@@ -1141,11 +1155,12 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 if parsed.release_year:
                     tmdb_params["primary_release_year"] = parsed.release_year
 
+                logger.info(f"🎬 TMDB DISCOVER: /discover/movie with {tmdb_params}")
                 # Fetch from TMDB
                 tmdb_data = await fetch_tmdb_data("/discover/movie", tmdb_params)
 
             if tmdb_data and tmdb_data.get("results"):
-                logger.info(f"TMDB returned {len(tmdb_data['results'])} movies")
+                logger.info(f"✅ TMDB returned {len(tmdb_data['results'])} movies")
                 # Process up to 20 movies
                 batch_size = 10
                 results = tmdb_data["results"][:20]
@@ -1194,9 +1209,10 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
 
         # If no movies found and cast_name is present, try name correction then search TMDB
         if len(movies) == 0 and parsed.cast_name:
+            logger.info(f"🎭 No movies found for actor '{parsed.cast_name}', trying TMDB actor search...")
             # Use LLM to correct the name (async)
             corrected_name = await correct_actor_name(parsed.cast_name)
-            logger.info(f"Searching TMDB with corrected name: {corrected_name}")
+            logger.info(f"🎭 Corrected name: '{corrected_name}'")
 
             # Use the corrected name for TMDB search
             result = await fuzzy_search_actor(corrected_name)
