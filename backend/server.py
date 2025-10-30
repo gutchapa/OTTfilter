@@ -1238,6 +1238,11 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                     "page": 1,
                 }
 
+                # FIX: Apply year filter for actor searches
+                if parsed.release_year:
+                    discover_params["primary_release_year"] = parsed.release_year
+                    logger.info(f"🎭 Filtering actor movies by year: {parsed.release_year}")
+
                 movies_data = await fetch_tmdb_data("/discover/movie", discover_params)
 
                 if movies_data and movies_data.get("results"):
