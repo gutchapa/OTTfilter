@@ -420,8 +420,8 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
 async def parse_natural_language_query(query: str) -> ParsedQuery:
     """Parse natural language query using OpenAI to extract filters"""
     if not openai_client:
-        # Fallback: return basic query
-        return ParsedQuery(keywords=query)
+        # Fallback: return basic query with intent
+        return ParsedQuery(keywords=query, intent="search_movie")
 
     try:
         system_prompt = """You are a movie search query parser. Extract structured filters from natural language queries.
@@ -517,7 +517,7 @@ Return only valid JSON, no explanations."""
 
     except Exception as e:
         logger.error(f"Error parsing natural language query: {str(e)}")
-        return ParsedQuery(keywords=query)
+        return ParsedQuery(keywords=query, intent="search_movie")
 
 
 # YouTube Integration
