@@ -457,17 +457,37 @@ async def parse_natural_language_query(query: str) -> ParsedQuery:
                 min_rating=8.0,
                 sort_by="rating",
                 release_year=release_year,
-                intent="search_movie"
+                keywords=None,  # Don't search by title for Oscar queries
+                languages=languages if languages else None,
+                intent="filter"  # Use filter intent, not search_movie
             )
+
+        # Clean up keywords: remove year, numbers, and filter words
+        keywords_clean = query
+        filter_words = ['top', 'best', 'greatest', 'latest', 'recent', 'new', 'movies', 'movie', 'film', 'films']
+
+        # Remove year if present
+        if release_year:
+            keywords_clean = keywords_clean.replace(str(release_year), '')
+
+        # Remove filter words and numbers
+        for word in filter_words:
+            keywords_clean = re.sub(r'\b' + word + r'\b', '', keywords_clean, flags=re.IGNORECASE)
+
+        # Remove standalone numbers (like "10" in "top 10")
+        keywords_clean = re.sub(r'\b\d+\b', '', keywords_clean)
+
+        # Clean up extra whitespace
+        keywords_clean = ' '.join(keywords_clean.split()).strip()
 
         # Return basic parsed query
         return ParsedQuery(
-            keywords=query,
+            keywords=keywords_clean if keywords_clean else None,
             languages=languages if languages else None,
             release_year=release_year,
             min_rating=min_rating,
             sort_by=sort_by,
-            intent="search_movie"
+            intent="search_movie" if keywords_clean else "filter"
         )
 
     try:
