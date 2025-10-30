@@ -405,10 +405,9 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
             popularity=details.get("popularity", 0),
         )
 
-        # Generate content warnings if certification exists (async, don't wait)
-        if certification:
-            warnings = await generate_content_warnings(movie.title, movie.genres, movie.synopsis, certification)
-            movie.content_warnings = warnings
+        # Content warnings are now generated on-demand (not during initial fetch)
+        # This makes search 10x faster - warnings generated only when user clicks "Why A?"
+        movie.content_warnings = None
 
         return movie
     except Exception as e:
@@ -762,6 +761,44 @@ async def get_movie(movie_id: str):
         raise HTTPException(status_code=404, detail="Movie not found")
 
     return movie
+
+
+@api_router.get("/movies/{movie_id}/content-warnings")
+async def get_content_warnings(movie_id: str):
+    """Generate content warnings for a movie on-demand (only when user clicks 'Why A?')"""
+    movie = await db.movies.find_one({"id": movie_id}, {"_id": 0})
+
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    # If already generated, return cached
+    if movie.get("content_warnings"):
+        return {"warnings": movie["content_warnings"]}
+
+    # Generate warnings on-demand
+    certification = movie.get("certification")
+    if not certification or not openai_client:
+        return {"warnings": []}
+
+    try:
+        warnings = await generate_content_warnings(
+            movie["title"],
+            movie.get("genres", []),
+            movie.get("synopsis", ""),
+            certification
+        )
+
+        # Cache the warnings in database for future requests
+        if warnings:
+            await db.movies.update_one(
+                {"id": movie_id},
+                {"$set": {"content_warnings": warnings}}
+            )
+
+        return {"warnings": warnings}
+    except Exception as e:
+        logger.error(f"Error generating content warnings: {str(e)}")
+        return {"warnings": []}
 
 
 @api_router.get("/filter-options", response_model=FilterOptions)
