@@ -465,6 +465,41 @@ async def parse_natural_language_query(query: str) -> ParsedQuery:
                 intent="filter"  # Use filter intent, not search_movie
             )
 
+        # Detect actor/cast searches: "actor name movies" or "actor name films"
+        # BUT only if query doesn't start with filter words like "top", "best", etc.
+        cast_name = None
+        filter_prefixes = ['top', 'best', 'latest', 'new', 'recent', 'highest', 'greatest']
+        has_filter_prefix = any(query_lower.startswith(prefix) for prefix in filter_prefixes)
+
+        actor_pattern = r'^(.+?)\s+(movies?|films?)$'
+        actor_match = re.search(actor_pattern, query_lower)
+
+        if actor_match and not has_filter_prefix:
+            # Extract actor name (everything before "movies"/"films")
+            cast_name = actor_match.group(1).strip()
+            # Remove filter words from actor name
+            for word in filter_prefixes:
+                cast_name = re.sub(r'\b' + word + r'\b', '', cast_name, flags=re.IGNORECASE).strip()
+            # Remove year from actor name
+            if release_year:
+                cast_name = cast_name.replace(str(release_year), '').strip()
+            # Remove language names from actor name
+            for lang in ['tamil', 'hindi', 'telugu', 'malayalam', 'kannada', 'english']:
+                cast_name = cast_name.replace(lang, '').strip()
+            cast_name = ' '.join(cast_name.split())  # Clean whitespace
+
+            # Make sure we actually have a name (not just numbers or empty)
+            if cast_name and not cast_name.isdigit():
+                # This is an actor search - return with cast_name
+                return ParsedQuery(
+                    cast_name=cast_name,
+                    languages=languages if languages else None,
+                    release_year=release_year,
+                    min_rating=min_rating,
+                    sort_by=sort_by,
+                    intent="search_movie"
+                )
+
         # Clean up keywords: remove year, numbers, and filter words
         keywords_clean = query
         filter_words = ['top', 'best', 'greatest', 'latest', 'recent', 'new', 'movies', 'movie', 'film', 'films']
