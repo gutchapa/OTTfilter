@@ -106,6 +106,7 @@ class ParsedQuery(BaseModel):
     min_rating: Optional[float] = None
     cast_name: Optional[str] = None
     keywords: Optional[str] = None
+    release_year: Optional[int] = None  # For filtering by year (e.g., "2024 movies")
     sort_by: Optional[str] = "popularity"
     intent: Optional[str] = None
 
@@ -419,8 +420,55 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
 async def parse_natural_language_query(query: str) -> ParsedQuery:
     """Parse natural language query using OpenAI to extract filters"""
     if not openai_client:
-        # Fallback: return basic query with intent
-        return ParsedQuery(keywords=query, intent="search_movie")
+        # Fallback: basic parsing without AI
+        import re
+        query_lower = query.lower()
+
+        # Extract year (2020-2099)
+        year_match = re.search(r'\b(20\d{2})\b', query)
+        release_year = int(year_match.group(1)) if year_match else None
+
+        # Extract common languages
+        languages = []
+        if any(word in query_lower for word in ['tamil', 'தமிழ்']):
+            languages.append('Tamil')
+        if any(word in query_lower for word in ['hindi', 'हिंदी']):
+            languages.append('Hindi')
+        if any(word in query_lower for word in ['telugu', 'తెలుగు']):
+            languages.append('Telugu')
+        if any(word in query_lower for word in ['malayalam', 'മലയാളം']):
+            languages.append('Malayalam')
+        if any(word in query_lower for word in ['kannada', 'ಕನ್ನಡ']):
+            languages.append('Kannada')
+
+        # Extract "top" or "best" queries
+        min_rating = 7.0 if any(word in query_lower for word in ['top', 'best', 'greatest']) else None
+
+        # Sort by
+        sort_by = "popularity"
+        if any(word in query_lower for word in ['latest', 'recent', 'new']):
+            sort_by = "release_date"
+        elif any(word in query_lower for word in ['top', 'best', 'highest']):
+            sort_by = "rating"
+
+        # Special case: Oscar/Awards - search for highly rated movies
+        if any(word in query_lower for word in ['oscar', 'academy award', 'award']):
+            return ParsedQuery(
+                min_rating=8.0,
+                sort_by="rating",
+                release_year=release_year,
+                intent="search_movie"
+            )
+
+        # Return basic parsed query
+        return ParsedQuery(
+            keywords=query,
+            languages=languages if languages else None,
+            release_year=release_year,
+            min_rating=min_rating,
+            sort_by=sort_by,
+            intent="search_movie"
+        )
 
     try:
         system_prompt = """You are a movie search query parser. Extract structured filters from natural language queries.
@@ -889,6 +937,10 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         if parsed.genres:
             query["genres"] = {"$in": parsed.genres}
 
+        # Filter by release year if specified
+        if parsed.release_year:
+            query["release_date"] = {"$regex": f"^{parsed.release_year}"}
+
         if parsed.platforms:
             query["ott_platforms"] = {"$in": parsed.platforms}
 
@@ -951,6 +1003,10 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                     lang_code = lang_code_map.get(parsed.languages[0], "en")
                     search_params["language"] = lang_code
 
+                # Add year filter
+                if parsed.release_year:
+                    search_params["year"] = parsed.release_year
+
                 tmdb_data = await fetch_tmdb_data("/search/movie", search_params)
             else:
                 # Build TMDB discover params for genre/language/platform filters
@@ -996,6 +1052,10 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 if parsed.min_rating:
                     tmdb_params["vote_average.gte"] = parsed.min_rating
                     tmdb_params["vote_count.gte"] = 50  # Ensure movies have enough votes
+
+                # Add year filter
+                if parsed.release_year:
+                    tmdb_params["primary_release_year"] = parsed.release_year
 
                 # Fetch from TMDB
                 tmdb_data = await fetch_tmdb_data("/discover/movie", tmdb_params)
