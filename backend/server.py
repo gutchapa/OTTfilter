@@ -1161,7 +1161,13 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
 
                 if parsed.min_rating:
                     tmdb_params["vote_average.gte"] = parsed.min_rating
-                    tmdb_params["vote_count.gte"] = 50  # Ensure movies have enough votes
+                    # FIX: Remove vote_count requirement for regional language queries
+                    # Tamil/Telugu/Malayalam movies rely on word-of-mouth, not TMDB ratings
+                    regional_languages = ["Tamil", "Telugu", "Malayalam", "Kannada", "Bengali", "Marathi", "Punjabi"]
+                    if not parsed.languages or not any(lang in regional_languages for lang in parsed.languages):
+                        tmdb_params["vote_count.gte"] = 50  # Only for non-regional queries
+                    else:
+                        logger.info(f"🎬 Skipping vote_count requirement for regional language: {parsed.languages}")
 
                 # Add year filter
                 if parsed.release_year:
