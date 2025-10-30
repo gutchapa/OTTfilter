@@ -453,10 +453,13 @@ async def parse_natural_language_query(query: str) -> ParsedQuery:
 
         # Special case: Oscar/Awards - search for highly rated movies
         if any(word in query_lower for word in ['oscar', 'academy award', 'award']):
+            # Oscar ceremonies honor films from the PREVIOUS year
+            # e.g., "Oscar 2025" ceremony honors 2024 films
+            oscar_year = (release_year - 1) if release_year else None
             return ParsedQuery(
-                min_rating=8.0,
+                min_rating=7.5,  # Lowered from 8.0 to get more results
                 sort_by="rating",
-                release_year=release_year,
+                release_year=oscar_year,
                 keywords=None,  # Don't search by title for Oscar queries
                 languages=languages if languages else None,
                 intent="filter"  # Use filter intent, not search_movie
