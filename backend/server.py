@@ -583,6 +583,14 @@ OSCAR/AWARDS SEARCHES (CRITICAL):
 - Examples: "Oscar 2025" -> {"min_rating": 6.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
 - Examples: "oscar winning movies" -> {"min_rating": 6.5, "sort_by": "rating", "intent": "filter"}
 
+YEAR EXTRACTION (CRITICAL):
+- ALWAYS extract 4-digit years (2020-2099) from the query into release_year
+- Examples: "top 10 2024 tamil movies" -> extract release_year: 2024
+- Examples: "best 2023 hindi films" -> extract release_year: 2023
+- Examples: "2022 action movies" -> extract release_year: 2022
+- DO NOT include the year in keywords - put it in release_year field
+- For Oscar queries, use year-1 (e.g., Oscar 2025 -> release_year: 2024)
+
 Extract and return JSON with:
 {
   "languages": ["Tamil"],  // if language mentioned
@@ -615,6 +623,9 @@ Examples:
 - "inspiring biographical movies" -> {"genres": ["Drama"], "min_rating": 7.0}
 - "Oscar 2025" -> {"min_rating": 6.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
 - "oscar winning tamil movies" -> {"min_rating": 6.5, "languages": ["Tamil"], "sort_by": "rating", "intent": "filter"}
+- "top 10 2024 tamil movies" -> {"languages": ["Tamil"], "min_rating": 7.0, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
+- "best 2023 hindi films" -> {"languages": ["Hindi"], "min_rating": 7.0, "release_year": 2023, "sort_by": "rating", "intent": "filter"}
+- "2022 action movies" -> {"genres": ["Action"], "release_year": 2022, "intent": "filter"}
 
 Return only valid JSON, no explanations."""
 
@@ -1081,7 +1092,8 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
 
         logger.info(f"📊 MONGODB RESULTS: {len(movies)} movies found")
 
-        # CRITICAL: If we have < 10 results from cache, fetch fresh from TMDB
+        # FIX 2: If we have < 10 results from cache, fetch fresh from TMDB
+        # For actor searches, skip this and use actor-specific TMDB search below
         if len(movies) < 10 and not parsed.cast_name:
             logger.info(f"⚠️  Only {len(movies)} cached results, fetching from TMDB...")
 
@@ -1207,9 +1219,9 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                 f"Filtered: {len(lead_movies)} lead roles, {len(supporting_movies)} supporting roles for '{parsed.cast_name}'"
             )
 
-        # If no movies found and cast_name is present, try name correction then search TMDB
-        if len(movies) == 0 and parsed.cast_name:
-            logger.info(f"🎭 No movies found for actor '{parsed.cast_name}', trying TMDB actor search...")
+        # FIX 2: If < 10 movies found for actor, search TMDB (changed from == 0 to < 10)
+        if len(movies) < 10 and parsed.cast_name:
+            logger.info(f"🎭 Only {len(movies)} movies found for actor '{parsed.cast_name}', trying TMDB actor search...")
             # Use LLM to correct the name (async)
             corrected_name = await correct_actor_name(parsed.cast_name)
             logger.info(f"🎭 Corrected name: '{corrected_name}'")
@@ -1283,6 +1295,24 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             movies_dicts.sort(key=lambda x: x.get("release_date", ""), reverse=True)
         else:
             movies_dicts.sort(key=lambda x: x.get("popularity", 0), reverse=True)
+
+        # FIX 1: For Oscar queries, exclude compilation films (e.g., "2025 Oscar Nominated Short Films")
+        # These are not actual Oscar winners, just collections of nominated shorts
+        query_lower = nl_query.query.lower()
+        if any(word in query_lower for word in ['oscar', 'academy award', 'award']):
+            original_count = len(movies_dicts)
+            movies_dicts = [
+                m for m in movies_dicts
+                if not any(phrase in m.get('title', '').lower() for phrase in [
+                    'oscar nominated short films',
+                    'academy awards short films',
+                    'a night at the oscars',
+                    'oscar shorts'
+                ])
+            ]
+            filtered_count = original_count - len(movies_dicts)
+            if filtered_count > 0:
+                logger.info(f"🎬 Filtered out {filtered_count} Oscar compilation films")
 
         # If looking for songs/trailers ONLY, get YouTube results (not for theme descriptions)
         youtube_results = []
