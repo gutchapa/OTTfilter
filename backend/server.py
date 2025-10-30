@@ -457,7 +457,7 @@ async def parse_natural_language_query(query: str) -> ParsedQuery:
             # e.g., "Oscar 2025" ceremony honors 2024 films
             oscar_year = (release_year - 1) if release_year else None
             return ParsedQuery(
-                min_rating=7.5,  # Lowered from 8.0 to get more results
+                min_rating=6.5,  # Lowered to 6.5 to get more results
                 sort_by="rating",
                 release_year=oscar_year,
                 keywords=None,  # Don't search by title for Oscar queries
@@ -579,16 +579,16 @@ OSCAR/AWARDS SEARCHES (CRITICAL):
 - If query mentions "oscar", "academy award", or "award", this is a filter for highly-rated movies
 - DO NOT put "oscar" in keywords (it will search for movies with "Oscar" in title)
 - Oscar ceremonies honor films from the PREVIOUS year (e.g., Oscar 2025 = 2024 films)
-- Set min_rating: 7.5, intent: "filter", and release_year to year-1 if year mentioned
-- Examples: "Oscar 2025" -> {"min_rating": 7.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
-- Examples: "oscar winning movies" -> {"min_rating": 7.5, "sort_by": "rating", "intent": "filter"}
+- Set min_rating: 6.5, intent: "filter", and release_year to year-1 if year mentioned
+- Examples: "Oscar 2025" -> {"min_rating": 6.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
+- Examples: "oscar winning movies" -> {"min_rating": 6.5, "sort_by": "rating", "intent": "filter"}
 
 Extract and return JSON with:
 {
   "languages": ["Tamil"],  // if language mentioned
   "genres": ["Drama", "Thriller"],  // if genre OR theme/description mentioned
   "platforms": ["Jio Cinema"],  // if ANY platform mentioned (check variations above)
-  "min_rating": 7.0,  // if rating mentioned, or 7.0 for "top/best", or 7.5 for Oscar/Awards
+  "min_rating": 7.0,  // if rating mentioned, or 7.0 for "top/best", or 6.5 for Oscar/Awards
   "cast_name": "exact name from query",  // actor/director name EXACTLY as typed (even partial names)
   "keywords": "movie title",  // for song names, specific MOVIE TITLES, OR scene/clip searches
   "release_year": 2024,  // if year mentioned (use year-1 for Oscar searches)
@@ -613,8 +613,8 @@ Examples:
 - "tamil movie with sollamale song" -> {"languages": ["Tamil"], "keywords": "sollamale", "intent": "search_song"}
 - "prime video action movies" -> {"platforms": ["Prime Video"], "genres": ["Action"]}
 - "inspiring biographical movies" -> {"genres": ["Drama"], "min_rating": 7.0}
-- "Oscar 2025" -> {"min_rating": 7.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
-- "oscar winning tamil movies" -> {"min_rating": 7.5, "languages": ["Tamil"], "sort_by": "rating", "intent": "filter"}
+- "Oscar 2025" -> {"min_rating": 6.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
+- "oscar winning tamil movies" -> {"min_rating": 6.5, "languages": ["Tamil"], "sort_by": "rating", "intent": "filter"}
 
 Return only valid JSON, no explanations."""
 
@@ -780,10 +780,20 @@ Return ONLY the corrected name, nothing else. If unsure, return the original nam
 
 @api_router.get("/discover")
 async def discover_movies(page: int = Query(1, ge=1), language: Optional[str] = None, genre: Optional[str] = None):
-    """Discover popular movies and cache them"""
+    """Discover latest movies from all OTT platforms"""
     try:
-        # FAST PATH: Return cached movies from database first
-        cached_movies = await db.movies.find({}, {"_id": 0}).sort("popularity", -1).limit(50).to_list(50)
+        # FAST PATH: Return cached latest movies from database first
+        # Filter to show only movies from last 2 years
+        from datetime import datetime
+        current_year = datetime.now().year
+        year_filter = {"release_date": {"$regex": f"^(202[2-9]|20[3-9][0-9])"}}  # 2022 onwards
+
+        cached_movies = (
+            await db.movies.find(year_filter, {"_id": 0})
+            .sort("release_date", -1)  # Sort by latest first
+            .limit(50)
+            .to_list(50)
+        )
 
         if len(cached_movies) > 10:
             # We have enough cached movies, return them immediately
@@ -791,10 +801,15 @@ async def discover_movies(page: int = Query(1, ge=1), language: Optional[str] = 
 
         # SLOW PATH: Only fetch from TMDB if we don't have enough cached movies
         # This runs in background on first load
-        logger.info("Cache miss - fetching from TMDB")
+        logger.info("Cache miss - fetching latest movies from TMDB")
 
-        # Simplified: Just fetch one page of popular movies
-        params = {"page": 1, "sort_by": "popularity.desc", "region": "IN"}
+        # Fetch latest movies (released in last 2 years)
+        params = {
+            "page": 1,
+            "sort_by": "release_date.desc",  # Changed from popularity.desc
+            "region": "IN",
+            "primary_release_date.gte": f"{current_year - 2}-01-01",  # Last 2 years
+        }
         data = await fetch_tmdb_data("/discover/movie", params)
 
         if not data:
