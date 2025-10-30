@@ -575,16 +575,25 @@ COMEDY SCENES & CLIPS (IMPORTANT):
 - Examples: "vadivelu best comedy scenes" -> intent: "search_youtube", keywords: "vadivelu comedy scenes"
 - Examples: "salman khan action scenes" -> intent: "search_youtube", keywords: "salman khan action scenes"
 
+OSCAR/AWARDS SEARCHES (CRITICAL):
+- If query mentions "oscar", "academy award", or "award", this is a filter for highly-rated movies
+- DO NOT put "oscar" in keywords (it will search for movies with "Oscar" in title)
+- Oscar ceremonies honor films from the PREVIOUS year (e.g., Oscar 2025 = 2024 films)
+- Set min_rating: 7.5, intent: "filter", and release_year to year-1 if year mentioned
+- Examples: "Oscar 2025" -> {"min_rating": 7.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
+- Examples: "oscar winning movies" -> {"min_rating": 7.5, "sort_by": "rating", "intent": "filter"}
+
 Extract and return JSON with:
 {
   "languages": ["Tamil"],  // if language mentioned
   "genres": ["Drama", "Thriller"],  // if genre OR theme/description mentioned
   "platforms": ["Jio Cinema"],  // if ANY platform mentioned (check variations above)
-  "min_rating": 7.0,  // if rating mentioned, or 7.0 for "top/best"
+  "min_rating": 7.0,  // if rating mentioned, or 7.0 for "top/best", or 7.5 for Oscar/Awards
   "cast_name": "exact name from query",  // actor/director name EXACTLY as typed (even partial names)
   "keywords": "movie title",  // for song names, specific MOVIE TITLES, OR scene/clip searches
+  "release_year": 2024,  // if year mentioned (use year-1 for Oscar searches)
   "sort_by": "release_date",  // "rating" if "highest/best/top", "release_date" if "latest/recent/new", else "popularity"
-  "intent": "search_movie"  // "search_song" for songs, "search_youtube" for scenes/clips, "search_movie" for titles
+  "intent": "search_movie"  // "search_song" for songs, "search_youtube" for scenes/clips, "filter" for Oscar/Awards, "search_movie" for titles
 
 }
 
@@ -604,6 +613,8 @@ Examples:
 - "tamil movie with sollamale song" -> {"languages": ["Tamil"], "keywords": "sollamale", "intent": "search_song"}
 - "prime video action movies" -> {"platforms": ["Prime Video"], "genres": ["Action"]}
 - "inspiring biographical movies" -> {"genres": ["Drama"], "min_rating": 7.0}
+- "Oscar 2025" -> {"min_rating": 7.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
+- "oscar winning tamil movies" -> {"min_rating": 7.5, "languages": ["Tamil"], "sort_by": "rating", "intent": "filter"}
 
 Return only valid JSON, no explanations."""
 
