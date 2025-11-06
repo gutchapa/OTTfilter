@@ -1334,7 +1334,8 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             )
 
         # FIX 2: If < 10 movies found for actor, search TMDB (changed from == 0 to < 10)
-        if len(movies) < 10 and parsed.cast_name:
+        # BUT: Don't trigger if keywords (movie title) is also present - user is searching for specific movie, not actor filmography
+        if len(movies) < 10 and parsed.cast_name and not parsed.keywords:
             logger.info(f"🎭 Only {len(movies)} movies found for actor '{parsed.cast_name}', trying TMDB actor search...")
             # Use LLM to correct the name (async)
             corrected_name = await correct_actor_name(parsed.cast_name)
