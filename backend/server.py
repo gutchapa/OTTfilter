@@ -883,6 +883,14 @@ async def discover_movies(page: int = Query(1, ge=1), language: Optional[str] = 
         )
 
         if len(cached_movies) > 10:
+            # Transform cached platform names (Disney+ Hotstar -> JioHotstar)
+            for movie in cached_movies:
+                if "ott_platforms" in movie and movie["ott_platforms"]:
+                    movie["ott_platforms"] = [
+                        "JioHotstar" if platform == "Disney+ Hotstar" else platform
+                        for platform in movie["ott_platforms"]
+                    ]
+
             # We have enough cached movies, return them immediately
             return {"movies": cached_movies, "page": page, "total_pages": 1}
 
@@ -963,6 +971,14 @@ async def filter_movies(filters: MovieFilter):
 
         # Fetch from database
         movies = await db.movies.find(query, {"_id": 0}).sort("popularity", -1).limit(50).to_list(50)
+
+        # Transform cached platform names (Disney+ Hotstar -> JioHotstar)
+        for movie in movies:
+            if "ott_platforms" in movie and movie["ott_platforms"]:
+                movie["ott_platforms"] = [
+                    "JioHotstar" if platform == "Disney+ Hotstar" else platform
+                    for platform in movie["ott_platforms"]
+                ]
 
         return movies
 
@@ -1056,6 +1072,15 @@ async def search_movies(q: str = Query(..., min_length=1)):
         }
 
         movies = await db.movies.find(query, {"_id": 0}).sort("popularity", -1).limit(20).to_list(20)
+
+        # Transform cached platform names (Disney+ Hotstar -> JioHotstar)
+        for movie in movies:
+            if "ott_platforms" in movie and movie["ott_platforms"]:
+                movie["ott_platforms"] = [
+                    "JioHotstar" if platform == "Disney+ Hotstar" else platform
+                    for platform in movie["ott_platforms"]
+                ]
+
         return movies
 
     except Exception as e:
@@ -1392,6 +1417,15 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             filtered_count = original_count - len(movies_dicts)
             if filtered_count > 0:
                 logger.info(f"🎬 Filtered out {filtered_count} Oscar compilation films")
+
+        # Transform cached platform names for rebranded platforms
+        # Disney+ Hotstar -> JioHotstar (post-merger)
+        for movie in movies_dicts:
+            if "ott_platforms" in movie and movie["ott_platforms"]:
+                movie["ott_platforms"] = [
+                    "JioHotstar" if platform == "Disney+ Hotstar" else platform
+                    for platform in movie["ott_platforms"]
+                ]
 
         # If looking for songs/trailers ONLY, get YouTube results (not for theme descriptions)
         youtube_results = []
