@@ -323,13 +323,10 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
                         elif "Prime" in platform_name or "Amazon" in platform_name:
                             mapped = "Prime Video"
                             providers.append(mapped)
-                        elif "JioHotstar" in platform_name:
-                            # JioHotstar is the NEW platform after Disney-Jio merger
+                        elif "Hotstar" in platform_name or "Disney" in platform_name:
+                            # Hotstar has been rebranded to JioHotstar after Disney-Jio merger in India
+                            # All Hotstar/Disney+ Hotstar references now map to JioHotstar
                             mapped = "JioHotstar"
-                            providers.append(mapped)
-                        elif "Disney" in platform_name or "Hotstar" in platform_name:
-                            # Old Disney+ Hotstar (before merger)
-                            mapped = "Disney+ Hotstar"
                             providers.append(mapped)
                         elif "Jio Cinema" in platform_name or "JioCinema" in platform_name:
                             mapped = "Jio Cinema"
@@ -382,7 +379,8 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
                 elif "Prime" in provider_name or "Amazon" in provider_name:
                     providers.append("Prime Video")
                 elif "Disney" in provider_name or "Hotstar" in provider_name:
-                    providers.append("Disney+ Hotstar")
+                    # Hotstar rebranded to JioHotstar after Disney-Jio merger
+                    providers.append("JioHotstar")
                 elif "Jio" in provider_name:
                     providers.append("Jio Cinema")
                 elif "Zee5" in provider_name or "ZEE5" in provider_name:
