@@ -641,17 +641,29 @@ MOVIE TITLE SEARCH (CRITICAL):
 - Examples: "dark knight" -> keywords: "dark knight", intent: "search_movie"
 - Do NOT confuse movie titles with themes/genres
 
-TYPO CORRECTION FOR MOVIE TITLES (CRITICAL):
-- Users often make typos when typing movie names
-- ALWAYS correct spelling errors in movie titles and put the CORRECTED version in keywords
-- Examples: "touist fmly" -> keywords: "tourist family", intent: "search_movie"
-- Examples: "incption" -> keywords: "inception", intent: "search_movie"
-- Examples: "the god fater" -> keywords: "the godfather", intent: "search_movie"
-- Examples: "avngers" -> keywords: "avengers", intent: "search_movie"
-- Use your language understanding to infer the correct movie title from typos
+TYPO CORRECTION (CRITICAL):
+- Users often make typos when typing movie names and actor names
+- ALWAYS correct spelling errors and put the CORRECTED version in the output
 - This is CRITICAL for good user experience - be forgiving with spelling
 
-IMPORTANT: Users may have typos in actor names. Keep the name AS-IS in cast_name field.
+Movie Title Typos:
+- "touist fmly" -> keywords: "tourist family", intent: "search_movie"
+- "incption" -> keywords: "inception", intent: "search_movie"
+- "the god fater" -> keywords: "the godfather", intent: "search_movie"
+- "avngers" -> keywords: "avengers", intent: "search_movie"
+- "jailr" -> keywords: "jailer", intent: "search_movie"
+
+Actor Name Typos:
+- "ranji", "rajni", "rajini" -> cast_name: "rajinikanth"
+- "ameer khan" -> cast_name: "aamir khan"
+- "salmen khan" -> cast_name: "salman khan"
+- "allu arjn" -> cast_name: "allu arjun"
+- "vijy" -> cast_name: "vijay"
+- Use your knowledge to correct common Indian actor name typos
+
+Combined (Movie + Actor):
+- "jailr ranji" -> keywords: "jailer", cast_name: "rajinikanth", intent: "search_movie"
+- "kgf yash" -> keywords: "kgf", cast_name: "yash", intent: "search_movie"
 
 COMEDY SCENES & CLIPS (IMPORTANT):
 - If user searches for "comedy scenes", "best scenes", "funny moments", "clips" etc., treat as YouTube search
