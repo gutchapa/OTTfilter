@@ -71,6 +71,13 @@ const webpackConfig = {
       return webpackConfig;
     },
   },
+  jest: {
+    configure: {
+      moduleNameMapper: {
+        '^@/(.*)$': '<rootDir>/src/$1',
+      },
+    },
+  },
 };
 
 // Only add babel plugin if visual editing is enabled
