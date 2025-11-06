@@ -1,0 +1,18 @@
+{
+  "short_name": "StreamFilter",
+  "name": "StreamFilter - OTT Movie Finder",
+  "description": "Find movies across 10+ Indian OTT platforms instantly",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#6366f1",
+  "background_color": "#0f172a",
+  "orientation": "portrait-primary",
+  "scope": "/"
+}

@@ -1,11 +1,19 @@
 <!doctype html>
 <html lang="en">
     <head>
+	<meta name="theme-color" content="#6366f1" />
+	<meta name="description" content="Find movies across 10+ Indian OTT platforms - Netflix, Prime, Hotstar, and more!" />
+	<link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+	<link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#000000" />
-        <meta name="description" content="A product of emergent.sh" />
-        <!--
+	<!-- Mobile Web App -->
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+	<meta name="apple-mobile-web-app-title" content="StreamFilter" />
+
+         <!--
       manifest.json provides metadata used when your web app is installed on a
       user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
     -->
@@ -18,7 +26,7 @@
       work correctly both with client-side routing and a non-root public URL.
       Learn how to configure a non-root public URL by running `npm run build`.
     -->
-        <title>Emergent | Fullstack App</title>
+        <title>StreamFilter - OTT Movie Finder</title>
         <script src="https://assets.emergent.sh/scripts/emergent-main.js"></script>
         <!--
         These two scripts have been added for the testing, please do not edit or remove them
@@ -175,6 +183,23 @@
                 api_host: "https://us.i.posthog.com",
                 person_profiles: "identified_only", // or 'always' to create profiles for anonymous users as well
             });
+
         </script>
+	<script>
+  	// Register service worker for PWA
+  	if ('serviceWorker' in navigator) {
+  	  	window.addEventListener('load', () => {
+      		navigator.serviceWorker.register('/service-worker.js')
+        	.then((registration) => {
+          console.log('ServiceWorker registered:', registration);
+        })
+        	.catch((error) => {
+          console.log('ServiceWorker registration failed:', error);
+        });
+    });
+  }
+</script>
+
+
     </body>
 </html>
