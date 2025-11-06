@@ -296,7 +296,8 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
             from simplejustwatchapi.justwatch import search as justwatch_search
 
             # Search JustWatch for the movie in India
-            results = justwatch_search(title, "IN", "en", 3, True)
+            # best_only=False to get ALL streaming platforms, not just "best" offer
+            results = justwatch_search(title, "IN", "en", 3, False)
 
             # Find the matching movie (by year if available)
             for entry in results:
