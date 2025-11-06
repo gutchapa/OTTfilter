@@ -641,6 +641,16 @@ MOVIE TITLE SEARCH (CRITICAL):
 - Examples: "dark knight" -> keywords: "dark knight", intent: "search_movie"
 - Do NOT confuse movie titles with themes/genres
 
+TYPO CORRECTION FOR MOVIE TITLES (CRITICAL):
+- Users often make typos when typing movie names
+- ALWAYS correct spelling errors in movie titles and put the CORRECTED version in keywords
+- Examples: "touist fmly" -> keywords: "tourist family", intent: "search_movie"
+- Examples: "incption" -> keywords: "inception", intent: "search_movie"
+- Examples: "the god fater" -> keywords: "the godfather", intent: "search_movie"
+- Examples: "avngers" -> keywords: "avengers", intent: "search_movie"
+- Use your language understanding to infer the correct movie title from typos
+- This is CRITICAL for good user experience - be forgiving with spelling
+
 IMPORTANT: Users may have typos in actor names. Keep the name AS-IS in cast_name field.
 
 COMEDY SCENES & CLIPS (IMPORTANT):
