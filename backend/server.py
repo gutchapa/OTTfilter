@@ -286,42 +286,99 @@ Example for Action movie rated PG-13:
     return None
 
 
-async def get_streaming_providers(tmdb_id: int):
-    """Get streaming availability for India"""
-    data = await fetch_tmdb_data(f"/movie/{tmdb_id}/watch/providers")
-    if data and "results" in data:
-        india_data = data["results"].get("IN", {})
-        providers = []
+async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = None):
+    """Get streaming availability for India using JustWatch (better India data than TMDB)"""
+    providers = []
 
-        # Get flatrate (subscription) providers
-        for provider in india_data.get("flatrate", []):
-            provider_name = provider["provider_name"]
-            # Map to common Indian OTT names
-            if "Netflix" in provider_name:
-                providers.append("Netflix")
-            elif "Prime" in provider_name or "Amazon" in provider_name:
-                providers.append("Prime Video")
-            elif "Disney" in provider_name or "Hotstar" in provider_name:
-                providers.append("Disney+ Hotstar")
-            elif "Jio" in provider_name:
-                providers.append("Jio Cinema")
-            elif "Zee5" in provider_name or "ZEE5" in provider_name:
-                providers.append("Zee5")
-            elif "Sony" in provider_name:
-                providers.append("SonyLIV")
-            elif "Voot" in provider_name:
-                providers.append("Voot")
-            elif "MX" in provider_name:
-                providers.append("MX Player")
-            elif "Aha" in provider_name:
-                providers.append("Aha")
-            elif "Sun" in provider_name:
-                providers.append("Sun NXT")
-            else:
-                providers.append(provider_name)
+    # Try JustWatch first (better India OTT coverage)
+    if title:
+        try:
+            from simplejustwatchapi.justwatch import search as justwatch_search
 
-        return list(set(providers))  # Remove duplicates
-    return []
+            # Search JustWatch for the movie in India
+            results = justwatch_search(title, "IN", "en", 3, True)
+
+            # Find the matching movie (by year if available)
+            for entry in results:
+                # Match by year if provided
+                if year and hasattr(entry, 'release_year'):
+                    if entry.release_year != year:
+                        continue
+                elif results[0] != entry:
+                    # If no year, just use the first result
+                    break
+
+                # Extract platform names
+                if hasattr(entry, 'offers') and entry.offers:
+                    for offer in entry.offers:
+                        platform_name = offer.package.name
+
+                        # Map JustWatch names to our standard names
+                        if "Netflix" in platform_name:
+                            providers.append("Netflix")
+                        elif "Prime" in platform_name or "Amazon" in platform_name:
+                            providers.append("Prime Video")
+                        elif "Disney" in platform_name or "Hotstar" in platform_name or "JioHotstar" in platform_name:
+                            providers.append("Disney+ Hotstar")
+                        elif "Jio Cinema" in platform_name or "JioCinema" in platform_name:
+                            providers.append("Jio Cinema")
+                        elif "Zee5" in platform_name or "ZEE5" in platform_name:
+                            providers.append("Zee5")
+                        elif "Sony" in platform_name:
+                            providers.append("SonyLIV")
+                        elif "Voot" in platform_name:
+                            providers.append("Voot")
+                        elif "MX" in platform_name:
+                            providers.append("MX Player")
+                        elif "Aha" in platform_name:
+                            providers.append("Aha")
+                        elif "Sun" in platform_name:
+                            providers.append("Sun NXT")
+                        elif "Lionsgate" not in platform_name and "Channel" not in platform_name:
+                            # Skip platform-specific channels, keep main platforms
+                            providers.append(platform_name)
+
+                    # Found a match with offers, stop searching
+                    if providers:
+                        logger.info(f"🎬 JustWatch found {len(set(providers))} platforms for '{title}'")
+                        break
+        except Exception as e:
+            logger.warning(f"JustWatch lookup failed for '{title}': {str(e)}")
+
+    # Fallback to TMDB if JustWatch didn't find anything
+    if not providers:
+        data = await fetch_tmdb_data(f"/movie/{tmdb_id}/watch/providers")
+        if data and "results" in data:
+            india_data = data["results"].get("IN", {})
+
+            # Get flatrate (subscription) providers
+            for provider in india_data.get("flatrate", []):
+                provider_name = provider["provider_name"]
+                # Map to common Indian OTT names
+                if "Netflix" in provider_name:
+                    providers.append("Netflix")
+                elif "Prime" in provider_name or "Amazon" in provider_name:
+                    providers.append("Prime Video")
+                elif "Disney" in provider_name or "Hotstar" in provider_name:
+                    providers.append("Disney+ Hotstar")
+                elif "Jio" in provider_name:
+                    providers.append("Jio Cinema")
+                elif "Zee5" in provider_name or "ZEE5" in provider_name:
+                    providers.append("Zee5")
+                elif "Sony" in provider_name:
+                    providers.append("SonyLIV")
+                elif "Voot" in provider_name:
+                    providers.append("Voot")
+                elif "MX" in provider_name:
+                    providers.append("MX Player")
+                elif "Aha" in provider_name:
+                    providers.append("Aha")
+                elif "Sun" in provider_name:
+                    providers.append("Sun NXT")
+                else:
+                    providers.append(provider_name)
+
+    return list(set(providers))  # Remove duplicates
 
 
 async def process_movie(movie_data: dict) -> Optional[Movie]:
@@ -329,19 +386,24 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
     try:
         tmdb_id = movie_data["id"]
 
-        # Fetch all data concurrently
+        # Fetch basic data concurrently (except providers - needs title)
         fetch_tasks = [
             get_movie_details(tmdb_id),
             get_movie_credits(tmdb_id),
-            get_streaming_providers(tmdb_id),
             get_movie_certification(tmdb_id),
         ]
 
         results = await asyncio.gather(*fetch_tasks)
-        details, (cast, director), providers, certification = results
+        details, (cast, director), certification = results
 
         if not details:
             return None
+
+        # Now fetch providers with title and year for better JustWatch matching
+        title = details.get("title", "")
+        release_date = details.get("release_date", "")
+        year = int(release_date[:4]) if release_date and len(release_date) >= 4 else None
+        providers = await get_streaming_providers(tmdb_id, title, year)
 
         # Fetch IMDb rating separately if available
         imdb_rating = None
