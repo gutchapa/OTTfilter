@@ -367,20 +367,27 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
         language_name = language_map.get(original_lang, original_lang.upper())
 
         # If no providers found, assign random Indian OTT platforms for demo
-        if not providers:
-            import random
+        # FIX: Only show OTT platforms for movies released 30+ days ago
+        # New/unreleased movies have unreliable TMDB data
+        from datetime import datetime, timedelta
 
-            all_otts = [
-                "Netflix",
-                "Prime Video",
-                "Disney+ Hotstar",
-                "Jio Cinema",
-                "Zee5",
-                "SonyLIV",
-                "Voot",
-                "MX Player",
-            ]
-            providers = [random.choice(all_otts)]
+        release_date_str = details.get("release_date", "")
+        show_platforms = True
+
+        if release_date_str:
+            try:
+                release_date = datetime.strptime(release_date_str, "%Y-%m-%d")
+                days_since_release = (datetime.now() - release_date).days
+
+                # Don't show platforms for unreleased or very recent movies
+                if days_since_release < 30:
+                    show_platforms = False
+                    logger.info(f"🎬 Skipping OTT platforms for recent movie: {details.get('title')} (released {days_since_release} days ago)")
+            except:
+                pass
+
+        # Only use TMDB provider data if movie is old enough
+        final_providers = providers if show_platforms else []
 
         movie = Movie(
             id=str(uuid.uuid4()),
@@ -399,7 +406,7 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
             vote_count=details.get("vote_count", 0),
             release_date=details.get("release_date", ""),
             synopsis=details.get("overview", ""),
-            ott_platforms=providers,
+            ott_platforms=final_providers,
             poster_url=f"{TMDB_IMAGE_BASE}{details['poster_path']}" if details.get("poster_path") else None,
             backdrop_url=f"{TMDB_IMAGE_BASE}{details['backdrop_path']}" if details.get("backdrop_path") else None,
             runtime=details.get("runtime"),
