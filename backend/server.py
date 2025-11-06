@@ -310,37 +310,59 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
 
                 # Extract platform names
                 if hasattr(entry, 'offers') and entry.offers:
+                    logger.info(f"🔍 JustWatch raw data for '{title}': {len(entry.offers)} offers found")
                     for offer in entry.offers:
                         platform_name = offer.package.name
+                        logger.info(f"   📺 Raw platform name: '{platform_name}'")
 
                         # Map JustWatch names to our standard names
+                        mapped = None
                         if "Netflix" in platform_name:
-                            providers.append("Netflix")
+                            mapped = "Netflix"
+                            providers.append(mapped)
                         elif "Prime" in platform_name or "Amazon" in platform_name:
-                            providers.append("Prime Video")
-                        elif "Disney" in platform_name or "Hotstar" in platform_name or "JioHotstar" in platform_name:
-                            providers.append("Disney+ Hotstar")
+                            mapped = "Prime Video"
+                            providers.append(mapped)
+                        elif "JioHotstar" in platform_name:
+                            # JioHotstar is the NEW platform after Disney-Jio merger
+                            mapped = "JioHotstar"
+                            providers.append(mapped)
+                        elif "Disney" in platform_name or "Hotstar" in platform_name:
+                            # Old Disney+ Hotstar (before merger)
+                            mapped = "Disney+ Hotstar"
+                            providers.append(mapped)
                         elif "Jio Cinema" in platform_name or "JioCinema" in platform_name:
-                            providers.append("Jio Cinema")
+                            mapped = "Jio Cinema"
+                            providers.append(mapped)
                         elif "Zee5" in platform_name or "ZEE5" in platform_name:
-                            providers.append("Zee5")
+                            mapped = "Zee5"
+                            providers.append(mapped)
                         elif "Sony" in platform_name:
-                            providers.append("SonyLIV")
+                            mapped = "SonyLIV"
+                            providers.append(mapped)
                         elif "Voot" in platform_name:
-                            providers.append("Voot")
+                            mapped = "Voot"
+                            providers.append(mapped)
                         elif "MX" in platform_name:
-                            providers.append("MX Player")
+                            mapped = "MX Player"
+                            providers.append(mapped)
                         elif "Aha" in platform_name:
-                            providers.append("Aha")
+                            mapped = "Aha"
+                            providers.append(mapped)
                         elif "Sun" in platform_name:
-                            providers.append("Sun NXT")
+                            mapped = "Sun NXT"
+                            providers.append(mapped)
                         elif "Lionsgate" not in platform_name and "Channel" not in platform_name:
                             # Skip platform-specific channels, keep main platforms
+                            logger.info(f"   ⚠️  Unmapped platform: '{platform_name}'")
                             providers.append(platform_name)
+
+                        if mapped:
+                            logger.info(f"      ✅ Mapped to: '{mapped}'")
 
                     # Found a match with offers, stop searching
                     if providers:
-                        logger.info(f"🎬 JustWatch found {len(set(providers))} platforms for '{title}'")
+                        logger.info(f"🎬 JustWatch found {len(set(providers))} unique platforms for '{title}': {list(set(providers))}")
                         break
         except Exception as e:
             logger.warning(f"JustWatch lookup failed for '{title}': {str(e)}")
