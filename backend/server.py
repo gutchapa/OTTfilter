@@ -1426,7 +1426,58 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
         elif parsed.sort_by == "release_date":
             movies_dicts.sort(key=lambda x: x.get("release_date", ""), reverse=True)
         else:
-            movies_dicts.sort(key=lambda x: x.get("popularity", 0), reverse=True)
+            # For movie title searches, use smart sorting that prioritizes recent + available movies
+            if parsed.keywords and parsed.intent == "search_movie":
+                from datetime import datetime
+                current_year = datetime.now().year
+
+                def smart_sort_score(movie):
+                    score = 0
+
+                    # 1. Exact title match gets HUGE boost (+1000)
+                    title = movie.get("title", "").lower()
+                    search_term = parsed.keywords.lower()
+                    if title == search_term:
+                        score += 1000
+                    elif title.startswith(search_term):
+                        score += 500
+
+                    # 2. Has OTT platforms (available to watch now) gets +500
+                    if movie.get("ott_platforms") and len(movie.get("ott_platforms", [])) > 0:
+                        score += 500
+
+                    # 3. Recency bonus: newer movies get higher scores
+                    release_date = movie.get("release_date", "")
+                    if release_date and len(release_date) >= 4:
+                        try:
+                            release_year = int(release_date[:4])
+                            years_ago = current_year - release_year
+
+                            # Movies from last 2 years: +400 to +200
+                            if years_ago <= 2:
+                                score += (400 - years_ago * 100)
+                            # Movies from last 5 years: +200 to +100
+                            elif years_ago <= 5:
+                                score += (200 - (years_ago - 2) * 33)
+                            # Movies from last 10 years: +100 to +50
+                            elif years_ago <= 10:
+                                score += (100 - (years_ago - 5) * 10)
+                            # Older movies get less boost
+                            elif years_ago <= 20:
+                                score += max(0, 50 - (years_ago - 10) * 5)
+                        except:
+                            pass
+
+                    # 4. Add base popularity score (0-100 range)
+                    score += min(movie.get("popularity", 0), 100)
+
+                    return score
+
+                movies_dicts.sort(key=smart_sort_score, reverse=True)
+                logger.info(f"🎯 Applied smart sorting for movie title search: '{parsed.keywords}'")
+            else:
+                # Default popularity sorting for other searches
+                movies_dicts.sort(key=lambda x: x.get("popularity", 0), reverse=True)
 
         # FIX 1: For Oscar queries, exclude compilation films (e.g., "2025 Oscar Nominated Short Films")
         # These are not actual Oscar winners, just collections of nominated shorts
