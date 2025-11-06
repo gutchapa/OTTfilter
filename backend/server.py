@@ -299,8 +299,11 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
             # best_only=False to get ALL streaming platforms, not just "best" offer
             results = justwatch_search(title, "IN", "en", 3, False)
 
+            logger.info(f"🔎 JustWatch search for '{title}': {len(results)} results found")
+
             # Find the matching movie (by year if available)
-            for entry in results:
+            for idx, entry in enumerate(results):
+                logger.info(f"🎯 Checking result {idx + 1}: {entry.title if hasattr(entry, 'title') else 'unknown'} ({entry.release_year if hasattr(entry, 'release_year') else '?'})")
                 # Match by year if provided
                 if year and hasattr(entry, 'release_year'):
                     if entry.release_year != year:
@@ -314,7 +317,8 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
                     logger.info(f"🔍 JustWatch raw data for '{title}': {len(entry.offers)} offers found")
                     for offer in entry.offers:
                         platform_name = offer.package.name
-                        logger.info(f"   📺 Raw platform name: '{platform_name}'")
+                        offer_type = offer.monetization_type if hasattr(offer, 'monetization_type') else 'unknown'
+                        logger.info(f"   📺 Raw platform name: '{platform_name}' (type: {offer_type})")
 
                         # Map JustWatch names to our standard names
                         mapped = None
