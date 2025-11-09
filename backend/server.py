@@ -970,10 +970,32 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
             
             if tmdb_data and tmdb_data.get('results'):
                 logger.info(f"TMDB returned {len(tmdb_data['results'])} movies")
+
+                # CRITICAL FIX: For movie title searches, filter TMDB results to only include movies
+                # where the title actually contains the search term
+                # This prevents TMDB from returning irrelevant movies based on plot keywords
+                results = tmdb_data['results'][:20]
+
+                if parsed.keywords and parsed.intent == "search_movie":
+                    search_term_lower = parsed.keywords.lower()
+                    filtered_results = []
+
+                    for result in results:
+                        title = result.get('title', '').lower()
+                        original_title = result.get('original_title', '').lower()
+
+                        # Check if search term appears in title or original title
+                        if search_term_lower in title or search_term_lower in original_title:
+                            filtered_results.append(result)
+                        else:
+                            logger.info(f"⚠️  Filtered out irrelevant TMDB result: '{result.get('title')}' (doesn't contain '{parsed.keywords}')")
+
+                    results = filtered_results
+                    logger.info(f"🔍 After title relevance filter: {len(results)} movies remain")
+
                 # Process up to 20 movies
                 batch_size = 10
-                results = tmdb_data['results'][:20]
-                
+
                 for i in range(0, len(results), batch_size):
                     batch = results[i:i+batch_size]
                     batch_movies = await asyncio.gather(
