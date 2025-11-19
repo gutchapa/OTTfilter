@@ -49,11 +49,13 @@ async def discover_movies(
         # SLOW PATH: Fetch latest movies from TMDB
         logger.info("Cache miss - fetching latest movies from TMDB")
 
+        # Fetch diverse content: all Indian languages, last 2 years
         params = {
             'page': 1,
             'sort_by': 'release_date.desc',  # Latest movies first
             'region': 'IN',
-            'primary_release_year': current_year  # Current year only
+            'primary_release_date.gte': f'{two_years_ago}-01-01',  # Last 2 years
+            'with_original_language': 'hi|ta|te|ml|kn|en'  # Hindi, Tamil, Telugu, Malayalam, Kannada, English
         }
         data = await fetch_tmdb_data('/discover/movie', params)
 

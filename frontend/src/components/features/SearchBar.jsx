@@ -20,7 +20,7 @@ export const SearchBar = () => {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
                 <Input
                     data-testid="search-input"
-                    placeholder={useNatural ? "Try: 'tamil movies by Vijay'" : "Search movies..."}
+                    placeholder={useNatural ? "Search for movies..." : "Search movies..."}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
