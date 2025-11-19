@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     YOUTUBE_API_KEY: Optional[str] = None
     OMDB_API_KEY: Optional[str] = None
-    
+    JUSTWATCH_ENABLED: bool = False  # Set to True if justwatch library is installed
+
     class Config:
         extra = "ignore"
         # Look for .env in the backend directory (parent of app)

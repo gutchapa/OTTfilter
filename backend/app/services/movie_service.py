@@ -88,13 +88,15 @@ async def get_movie_certification(tmdb_id: int) -> Optional[str]:
         logger.error(f"Error fetching certification: {str(e)}")
         return None
 
-async def get_streaming_providers(tmdb_id: int):
-    """Get streaming availability for India"""
+async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = None):
+    """Get streaming availability for India with JustWatch integration"""
+    # Try TMDB first
     data = await fetch_tmdb_data(f"/movie/{tmdb_id}/watch/providers")
+    providers = []
+
     if data and 'results' in data:
         india_data = data['results'].get('IN', {})
-        providers = []
-        
+
         for provider in india_data.get('flatrate', []):
             provider_name = provider['provider_name']
             if 'Netflix' in provider_name:
@@ -102,7 +104,7 @@ async def get_streaming_providers(tmdb_id: int):
             elif 'Prime' in provider_name or 'Amazon' in provider_name:
                 providers.append('Prime Video')
             elif 'Disney' in provider_name or 'Hotstar' in provider_name:
-                providers.append('Disney+ Hotstar')
+                providers.append('JioHotstar')  # Rebrand to JioHotstar
             elif 'Jio' in provider_name:
                 providers.append('Jio Cinema')
             elif 'Zee5' in provider_name or 'ZEE5' in provider_name:
@@ -119,51 +121,97 @@ async def get_streaming_providers(tmdb_id: int):
                 providers.append('Sun NXT')
             else:
                 providers.append(provider_name)
-        
-        return list(set(providers))
-    return []
 
-async def process_movie(movie_data: dict) -> Optional[Movie]:
+    # Try JustWatch if available and TMDB didn't give results
+    if not providers and title and settings.JUSTWATCH_ENABLED:
+        try:
+            from justwatch import JustWatch
+            jw = JustWatch(country='IN')
+
+            search_params = {'query': title}
+            if year:
+                search_params['release_year_from'] = year
+                search_params['release_year_until'] = year
+
+            results = jw.search_for_item(**search_params)
+
+            if results and results.get('items'):
+                for item in results['items'][:3]:  # Check top 3 matches
+                    if item.get('object_type') == 'movie':
+                        offers = item.get('offers', [])
+                        for offer in offers:
+                            if offer.get('monetization_type') == 'flatrate':
+                                provider_id = offer.get('provider_id')
+                                # Map JustWatch provider IDs to our platform names
+                                provider_map = {
+                                    8: 'Netflix',
+                                    9: 'Prime Video',
+                                    122: 'JioHotstar',  # Disney+ Hotstar → JioHotstar
+                                    220: 'Jio Cinema',
+                                    232: 'Zee5',
+                                    237: 'SonyLIV',
+                                    121: 'Voot',
+                                    515: 'MX Player',
+                                    532: 'Aha',
+                                    551: 'Sun NXT'
+                                }
+                                if provider_id in provider_map:
+                                    providers.append(provider_map[provider_id])
+
+                        if providers:
+                            break
+
+            logger.info(f"JustWatch found {len(providers)} providers for '{title}'")
+        except Exception as e:
+            logger.warning(f"JustWatch lookup failed: {str(e)}")
+
+    return list(set(providers))  # Remove duplicates
+
+async def process_movie(movie_data: dict, generate_warnings: bool = False) -> Optional[Movie]:
     """Process a movie from TMDB and enrich with additional data"""
     try:
         tmdb_id = movie_data['id']
-        
-        fetch_tasks = [
-            get_movie_details(tmdb_id),
-            get_movie_credits(tmdb_id),
-            get_streaming_providers(tmdb_id),
-            get_movie_certification(tmdb_id)
-        ]
-        
-        results = await asyncio.gather(*fetch_tasks)
-        details, (cast, director), providers, certification = results
-        
+
+        # Get basic details first to extract title and year
+        details = await get_movie_details(tmdb_id)
         if not details:
             return None
-        
+
+        title = details.get('title', '')
+        release_date = details.get('release_date', '')
+        year = int(release_date[:4]) if release_date and len(release_date) >= 4 else None
+
+        # Fetch remaining data with title/year for JustWatch
+        fetch_tasks = [
+            get_movie_credits(tmdb_id),
+            get_streaming_providers(tmdb_id, title, year),
+            get_movie_certification(tmdb_id)
+        ]
+
+        results = await asyncio.gather(*fetch_tasks)
+        (cast, director), providers, certification = results
+
         imdb_rating = None
         imdb_id = details.get('imdb_id')
         if imdb_id:
             imdb_rating = await get_imdb_rating(imdb_id)
-        
+
         language_map = {
             'ta': 'Tamil', 'hi': 'Hindi', 'te': 'Telugu', 'ml': 'Malayalam',
             'kn': 'Kannada', 'en': 'English', 'bn': 'Bengali', 'mr': 'Marathi',
             'pa': 'Punjabi', 'gu': 'Gujarati'
         }
-        
+
         original_lang = details.get('original_language', 'en')
         language_name = language_map.get(original_lang, original_lang.upper())
-        
-        if not providers:
-            import random
-            all_otts = ['Netflix', 'Prime Video', 'Disney+ Hotstar', 'Jio Cinema', 'Zee5', 'SonyLIV', 'Voot', 'MX Player']
-            providers = [random.choice(all_otts)]
-        
+
+        # Don't assign random OTT platforms - leave empty if not found
+        # Honesty is better than fake data
+
         movie = Movie(
             id=str(uuid.uuid4()),
             tmdb_id=tmdb_id,
-            title=details.get('title', ''),
+            title=title,
             original_title=details.get('original_title', ''),
             genres=[genre['name'] for genre in details.get('genres', [])],
             language=language_name,
@@ -173,18 +221,19 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
             rating=round(details.get('vote_average', 0), 1),
             imdb_rating=round(imdb_rating, 1) if imdb_rating else None,
             certification=certification,
-            content_warnings=None,
+            content_warnings=None,  # Generated on-demand
             vote_count=details.get('vote_count', 0),
-            release_date=details.get('release_date', ''),
+            release_date=release_date,
             synopsis=details.get('overview', ''),
-            ott_platforms=providers,
+            ott_platforms=providers,  # May be empty - that's OK
             poster_url=f"{TMDB_IMAGE_BASE}{details['poster_path']}" if details.get('poster_path') else None,
             backdrop_url=f"{TMDB_IMAGE_BASE}{details['backdrop_path']}" if details.get('backdrop_path') else None,
             runtime=details.get('runtime'),
             popularity=details.get('popularity', 0)
         )
-        
-        if certification:
+
+        # Only generate content warnings if explicitly requested (on-demand)
+        if generate_warnings and certification:
             warnings = await generate_content_warnings(
                 movie.title,
                 movie.genres,
@@ -192,7 +241,7 @@ async def process_movie(movie_data: dict) -> Optional[Movie]:
                 certification
             )
             movie.content_warnings = warnings
-        
+
         return movie
     except Exception as e:
         logger.error(f"Error processing movie {movie_data.get('id')}: {str(e)}")
