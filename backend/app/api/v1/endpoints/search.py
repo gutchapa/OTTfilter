@@ -46,12 +46,29 @@ async def natural_language_search(query: NaturalLanguageQuery):
         if parsed.release_year:
             db_query['release_date'] = {'$regex': f"^{parsed.release_year}"}
 
-        # Movie title search
+        # Movie title search with fuzzy matching support
         if parsed.keywords and parsed.intent == "search_movie":
-            db_query['$or'] = [
-                {'title': {'$regex': parsed.keywords, '$options': 'i'}},
-                {'original_title': {'$regex': parsed.keywords, '$options': 'i'}}
-            ]
+            # Split search into words for better fuzzy matching
+            # e.g., "kuti puli" -> searches for titles containing both "kuti" AND "puli"
+            words = parsed.keywords.split()
+
+            if len(words) > 1:
+                # Multi-word search: match if title contains all words (order-independent)
+                word_patterns = [{'title': {'$regex': word, '$options': 'i'}} for word in words]
+                word_patterns_original = [{'original_title': {'$regex': word, '$options': 'i'}} for word in words]
+
+                db_query['$or'] = [
+                    {'$and': word_patterns},  # All words in title
+                    {'$and': word_patterns_original},  # All words in original_title
+                    {'title': {'$regex': parsed.keywords, '$options': 'i'}},  # Exact phrase in title
+                    {'original_title': {'$regex': parsed.keywords, '$options': 'i'}}  # Exact phrase in original
+                ]
+            else:
+                # Single word search
+                db_query['$or'] = [
+                    {'title': {'$regex': parsed.keywords, '$options': 'i'}},
+                    {'original_title': {'$regex': parsed.keywords, '$options': 'i'}}
+                ]
 
         # Actor/cast search
         if parsed.cast_name:
@@ -167,10 +184,11 @@ async def natural_language_search(query: NaturalLanguageQuery):
                         # Exact substring match
                         exact_match = search_term_lower in title or search_term_lower in original_title
 
-                        # Fuzzy match for typos (e.g., "kidari" -> "kidaari")
+                        # Fuzzy match for typos (e.g., "kidari" -> "kidaari", "kuti puli" -> "kutti puli")
+                        # Lowered threshold from 0.75 to 0.65 to handle single-char typos
                         fuzzy_score_title = fuzzy_match_score(search_term_lower, title)
                         fuzzy_score_original = fuzzy_match_score(search_term_lower, original_title)
-                        fuzzy_match = fuzzy_score_title >= 0.75 or fuzzy_score_original >= 0.75
+                        fuzzy_match = fuzzy_score_title >= 0.65 or fuzzy_score_original >= 0.65
 
                         if exact_match or fuzzy_match:
                             filtered_results.append(result)
