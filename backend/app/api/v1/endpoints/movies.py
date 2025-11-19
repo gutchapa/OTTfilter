@@ -17,31 +17,51 @@ async def discover_movies(
     language: Optional[str] = None,
     genre: Optional[str] = None
 ):
-    """Discover popular movies and cache them"""
+    """Discover latest movies (last 2 years) and cache them"""
     try:
         db = await get_database()
-        
-        # FAST PATH: Return cached movies from database first
-        cached_movies = await db.movies.find({}, {'_id': 0}).sort('popularity', -1).limit(50).to_list(50)
-        
+
+        # FAST PATH: Return cached latest movies from database
+        from datetime import datetime
+        current_year = datetime.now().year
+        two_years_ago = current_year - 2
+
+        # Filter to last 2 years for discover (show latest content)
+        year_query = {'release_date': {'$regex': f'^({current_year}|{current_year-1}|{two_years_ago})'}}
+
+        cached_movies = await db.movies.find(year_query, {'_id': 0}).sort('release_date', -1).limit(50).to_list(50)
+
+        # JioHotstar rebrand transformation
+        for movie in cached_movies:
+            if 'ott_platforms' in movie and movie['ott_platforms']:
+                movie['ott_platforms'] = [
+                    'JioHotstar' if platform == 'Disney+ Hotstar' else platform
+                    for platform in movie['ott_platforms']
+                ]
+
         if len(cached_movies) > 10:
             return {
                 'movies': cached_movies,
                 'page': page,
                 'total_pages': 1
             }
-        
-        # SLOW PATH: Fetch from TMDB
-        logger.info("Cache miss - fetching from TMDB")
-        
-        params = {'page': 1, 'sort_by': 'popularity.desc', 'region': 'IN'}
+
+        # SLOW PATH: Fetch latest movies from TMDB
+        logger.info("Cache miss - fetching latest movies from TMDB")
+
+        params = {
+            'page': 1,
+            'sort_by': 'release_date.desc',  # Latest movies first
+            'region': 'IN',
+            'primary_release_year': current_year  # Current year only
+        }
         data = await fetch_tmdb_data('/discover/movie', params)
-        
+
         if not data:
             return {'movies': cached_movies, 'page': 1, 'total_pages': 1}
-        
+
         results = data.get('results', [])[:20]
-        
+
         movies = []
         batch_size = 10
         for i in range(0, len(results), batch_size):
@@ -51,7 +71,7 @@ async def discover_movies(
                 return_exceptions=True
             )
             movies.extend([m for m in batch_movies if m is not None and isinstance(m, Movie)])
-        
+
         if movies:
             bulk_operations = [
                 UpdateOne(
@@ -63,13 +83,22 @@ async def discover_movies(
             ]
             if bulk_operations:
                 await db.movies.bulk_write(bulk_operations)
-        
+
+        # JioHotstar rebrand for new movies too
+        movies_dicts = [m.model_dump() for m in movies]
+        for movie in movies_dicts:
+            if 'ott_platforms' in movie and movie['ott_platforms']:
+                movie['ott_platforms'] = [
+                    'JioHotstar' if platform == 'Disney+ Hotstar' else platform
+                    for platform in movie['ott_platforms']
+                ]
+
         return {
-            'movies': movies,
+            'movies': movies_dicts,
             'page': page,
             'total_pages': data.get('total_pages', 1)
         }
-    
+
     except Exception as e:
         logger.error(f"Error in discover_movies: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -126,16 +155,16 @@ async def get_filter_options():
     """Get all available filter options"""
     try:
         db = await get_database()
-        
+
         genres = await db.movies.distinct('genres')
         genres = sorted([g for g in genres if g])
-        
+
         languages = await db.movies.distinct('language')
         languages = sorted([lang for lang in languages if lang])
-        
+
         platforms = await db.movies.distinct('ott_platforms')
         platforms = sorted([p for p in platforms if p])
-        
+
         return FilterOptions(
             genres=genres,
             languages=languages,
@@ -143,4 +172,59 @@ async def get_filter_options():
         )
     except Exception as e:
         logger.error(f"Error getting filter options: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{movie_id}/content-warnings", response_model=dict)
+async def get_content_warnings(movie_id: str):
+    """Generate content warnings on-demand for a movie"""
+    try:
+        db = await get_database()
+
+        # Fetch movie from database
+        movie = await db.movies.find_one({'id': movie_id}, {'_id': 0})
+
+        if not movie:
+            raise HTTPException(status_code=404, detail="Movie not found")
+
+        # Check if warnings already cached
+        if movie.get('content_warnings'):
+            return {
+                'movie_id': movie_id,
+                'content_warnings': movie['content_warnings'],
+                'cached': True
+            }
+
+        # Generate warnings using AI
+        certification = movie.get('certification')
+        if not certification:
+            return {
+                'movie_id': movie_id,
+                'content_warnings': [],
+                'message': 'No certification available for this movie'
+            }
+
+        warnings = await generate_content_warnings(
+            title=movie.get('title', ''),
+            genres=movie.get('genres', []),
+            synopsis=movie.get('synopsis', ''),
+            certification=certification
+        )
+
+        # Cache warnings in database
+        if warnings:
+            await db.movies.update_one(
+                {'id': movie_id},
+                {'$set': {'content_warnings': warnings}}
+            )
+
+        return {
+            'movie_id': movie_id,
+            'content_warnings': warnings,
+            'cached': False
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating content warnings: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
