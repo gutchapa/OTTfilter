@@ -1313,9 +1313,18 @@ async def natural_language_search(nl_query: NaturalLanguageQuery):
                         title = result.get("title", "").lower()
                         original_title = result.get("original_title", "").lower()
 
-                        # Check if search term appears in title or original title
-                        if search_term_lower in title or search_term_lower in original_title:
+                        # Check if search term appears in title or original title (exact substring match)
+                        exact_match = search_term_lower in title or search_term_lower in original_title
+
+                        # Fuzzy match for typos/spelling variations (e.g., "kidari" should match "kidaari")
+                        fuzzy_score_title = fuzzy_match_score(search_term_lower, title)
+                        fuzzy_score_original = fuzzy_match_score(search_term_lower, original_title)
+                        fuzzy_match = fuzzy_score_title >= 0.75 or fuzzy_score_original >= 0.75
+
+                        if exact_match or fuzzy_match:
                             filtered_results.append(result)
+                            if fuzzy_match and not exact_match:
+                                logger.info(f"✅ Fuzzy matched '{parsed.keywords}' to '{result.get('title')}' (score: {max(fuzzy_score_title, fuzzy_score_original):.2f})")
                         else:
                             logger.info(f"⚠️  Filtered out irrelevant TMDB result: '{result.get('title')}' (doesn't contain '{parsed.keywords}')")
 
