@@ -128,46 +128,102 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
             elif 'YouTube' not in provider_name:  # Exclude YouTube Movies/Rent
                 providers.append(provider_name)
 
-    # Try JustWatch if available and TMDB didn't give results
+    # Try JustWatch GraphQL API if TMDB didn't give results
     if not providers and title and settings.JUSTWATCH_ENABLED:
         try:
-            from justwatch import JustWatch
-            jw = JustWatch(country='IN')
+            # JustWatch GraphQL API endpoint
+            url = "https://apis.justwatch.com/graphql"
 
-            search_params = {'query': title}
-            if year:
-                search_params['release_year_from'] = year
-                search_params['release_year_until'] = year
+            # GraphQL query to search for movie
+            query = """
+            query GetSearchTitles($searchTitlesFilter: TitleFilter!, $country: Country!, $language: Language!) {
+              popularTitles(
+                country: $country
+                filter: $searchTitlesFilter
+                first: 5
+              ) {
+                edges {
+                  node {
+                    ... on MovieOrShow {
+                      objectType
+                      objectId
+                      content(country: $country, language: $language) {
+                        title
+                        originalReleaseYear
+                      }
+                      offers(country: $country, platform: WEB) {
+                        monetizationType
+                        package {
+                          packageId
+                          clearName
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            """
 
-            results = jw.search_for_item(**search_params)
+            variables = {
+                "searchTitlesFilter": {"searchQuery": title},
+                "country": "IN",
+                "language": "en"
+            }
 
-            if results and results.get('items'):
-                for item in results['items'][:3]:  # Check top 3 matches
-                    if item.get('object_type') == 'movie':
-                        offers = item.get('offers', [])
+            response = await http_client.post(
+                url,
+                json={"query": query, "variables": variables},
+                headers={"Content-Type": "application/json"}
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                edges = data.get('data', {}).get('popularTitles', {}).get('edges', [])
+
+                for edge in edges:
+                    node = edge.get('node', {})
+                    if node.get('objectType') == 'MOVIE':
+                        content = node.get('content', {})
+                        movie_year = content.get('originalReleaseYear')
+
+                        # Match year if provided
+                        if year and movie_year and abs(movie_year - year) > 1:
+                            continue
+
+                        offers = node.get('offers', [])
                         for offer in offers:
-                            if offer.get('monetization_type') == 'flatrate':
-                                provider_id = offer.get('provider_id')
-                                # Map JustWatch provider IDs to our platform names
-                                provider_map = {
-                                    8: 'Netflix',
-                                    9: 'Prime Video',
-                                    122: 'JioHotstar',  # Disney+ Hotstar → JioHotstar
-                                    220: 'Jio Cinema',
-                                    232: 'Zee5',
-                                    237: 'SonyLIV',
-                                    121: 'Voot',
-                                    515: 'MX Player',
-                                    532: 'Aha',
-                                    551: 'Sun NXT'
-                                }
-                                if provider_id in provider_map:
-                                    providers.append(provider_map[provider_id])
+                            if offer.get('monetizationType') in ['FLATRATE', 'FREE', 'ADS']:
+                                package = offer.get('package', {})
+                                provider_name = package.get('clearName', '')
+
+                                # Map to our platform names
+                                if 'Netflix' in provider_name:
+                                    providers.append('Netflix')
+                                elif 'Prime' in provider_name or 'Amazon' in provider_name:
+                                    providers.append('Prime Video')
+                                elif 'Disney' in provider_name or 'Hotstar' in provider_name:
+                                    providers.append('JioHotstar')
+                                elif 'Jio Cinema' in provider_name:
+                                    providers.append('Jio Cinema')
+                                elif 'Zee5' in provider_name or 'ZEE5' in provider_name:
+                                    providers.append('Zee5')
+                                elif 'Sony' in provider_name:
+                                    providers.append('SonyLIV')
+                                elif 'Voot' in provider_name:
+                                    providers.append('Voot')
+                                elif 'MX' in provider_name:
+                                    providers.append('MX Player')
+                                elif 'Aha' in provider_name:
+                                    providers.append('Aha')
+                                elif 'Sun NXT' in provider_name:
+                                    providers.append('Sun NXT')
 
                         if providers:
                             break
 
-            logger.info(f"JustWatch found {len(providers)} providers for '{title}'")
+                if providers:
+                    logger.info(f"JustWatch found {len(providers)} providers for '{title}'")
         except Exception as e:
             logger.warning(f"JustWatch lookup failed: {str(e)}")
 

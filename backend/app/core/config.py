@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     YOUTUBE_API_KEY: Optional[str] = None
     OMDB_API_KEY: Optional[str] = None
-    JUSTWATCH_ENABLED: bool = False  # JustWatch API is currently broken (404 errors)
+    JUSTWATCH_ENABLED: bool = True  # Using custom JustWatch implementation
 
     class Config:
         extra = "ignore"
