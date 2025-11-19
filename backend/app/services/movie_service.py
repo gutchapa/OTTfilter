@@ -90,14 +90,20 @@ async def get_movie_certification(tmdb_id: int) -> Optional[str]:
 
 async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = None):
     """Get streaming availability for India with JustWatch integration"""
-    # Try TMDB first
+    # Try TMDB first - check all monetization types (flatrate, free, ads)
     data = await fetch_tmdb_data(f"/movie/{tmdb_id}/watch/providers")
     providers = []
 
     if data and 'results' in data:
         india_data = data['results'].get('IN', {})
 
-        for provider in india_data.get('flatrate', []):
+        # Check all monetization types: flatrate (subscription), free (with ads), ads
+        all_providers = []
+        all_providers.extend(india_data.get('flatrate', []))
+        all_providers.extend(india_data.get('free', []))
+        all_providers.extend(india_data.get('ads', []))
+
+        for provider in all_providers:
             provider_name = provider['provider_name']
             if 'Netflix' in provider_name:
                 providers.append('Netflix')
@@ -119,7 +125,7 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
                 providers.append('Aha')
             elif 'Sun' in provider_name:
                 providers.append('Sun NXT')
-            else:
+            elif 'YouTube' not in provider_name:  # Exclude YouTube Movies/Rent
                 providers.append(provider_name)
 
     # Try JustWatch if available and TMDB didn't give results

@@ -12,3 +12,4 @@ requests
 python-multipart
 email-validator
 jinja2
+justwatch
