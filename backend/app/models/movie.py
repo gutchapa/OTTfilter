@@ -49,6 +49,7 @@ class ParsedQuery(BaseModel):
     min_rating: Optional[float] = None
     cast_name: Optional[str] = None
     keywords: Optional[str] = None
+    release_year: Optional[int] = None  # For filtering by year (e.g., "2024 movies")
     sort_by: Optional[str] = "popularity"
     intent: Optional[str] = None
 
