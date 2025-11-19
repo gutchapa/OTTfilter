@@ -83,6 +83,6 @@ android-sdk/
 *.env.*
 
 # Local Backups & Debug
-backup/
+# backup/  # Temporarily commented for code review
 debug_config.py
 backend_test.py
