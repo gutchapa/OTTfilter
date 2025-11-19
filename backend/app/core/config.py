@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: Optional[str] = None
     YOUTUBE_API_KEY: Optional[str] = None
     OMDB_API_KEY: Optional[str] = None
-    JUSTWATCH_ENABLED: bool = True  # JustWatch provides better Indian OTT coverage
+    JUSTWATCH_ENABLED: bool = False  # JustWatch API is currently broken (404 errors)
 
     class Config:
         extra = "ignore"
