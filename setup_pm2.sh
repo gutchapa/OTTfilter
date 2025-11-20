@@ -39,10 +39,10 @@ mkdir -p frontend/logs
 echo ""
 echo "🏗️  Building frontend..."
 cd frontend
-if [ ! -d "build" ]; then
-    echo "Running npm install..."
-    npm install --legacy-peer-deps
-fi
+# Clean node_modules to avoid cached dependency conflicts
+rm -rf node_modules package-lock.json
+echo "Running npm install..."
+npm install --legacy-peer-deps
 echo "Running npm build..."
 npm run build
 cd ..

@@ -38,6 +38,8 @@ cd ..
 echo ""
 echo "🏗️  Rebuilding frontend..."
 cd frontend
+# Clean node_modules to avoid cached dependency conflicts
+rm -rf node_modules package-lock.json
 npm install --legacy-peer-deps --quiet
 npm run build
 cd ..
