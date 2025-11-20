@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 
 class OTTAggregatorAPITester:
-    def __init__(self, base_url="https://ott-finder-1.preview.emergentagent.com"):
+    def __init__(self, base_url="http://localhost:8000"):
         self.base_url = base_url
         self.api_url = f"{base_url}/api"
         self.tests_run = 0
@@ -123,7 +123,7 @@ class OTTAggregatorAPITester:
             success, response = self.run_test(
                 f"Search Movies - '{query}'",
                 "GET",
-                "search",
+                "basic",
                 200,
                 params={"q": query}
             )
@@ -136,7 +136,7 @@ class OTTAggregatorAPITester:
         success, response = self.run_test(
             "Get Filter Options",
             "GET",
-            "filter-options",
+            "options/all",
             200
         )
         

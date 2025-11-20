@@ -31,7 +31,6 @@ dist/
 dist
 
 # Environment files (comprehensive coverage)
-
 *token.json*
 *credentials.json*
 
@@ -48,7 +47,7 @@ dump.rdb
 
 # Python
 __pycache__/
-*pyc*
+*pyc
 venv/
 .venv/
 
@@ -77,19 +76,13 @@ agenthub/agents/youtube/db
 .cache/
 
 # Mobile development
-android-sdk/ -e 
+android-sdk/
+
 # Environment files
 *.env
 *.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
+
+# Local Backups & Debug
+# backup/  # Temporarily commented for code review
+debug_config.py
+backend_test.py
