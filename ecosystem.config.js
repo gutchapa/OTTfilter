@@ -22,8 +22,8 @@ module.exports = {
     },
     {
       name: 'ottfilter-frontend',
-      script: 'serve',
-      args: '-s build -l 10000',
+      script: 'npx',
+      args: 'serve -s build -l 10000',
       cwd: '/var/www/OTTfilter/frontend',
       interpreter: 'none',
       env: {
