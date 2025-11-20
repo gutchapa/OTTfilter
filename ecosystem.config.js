@@ -2,12 +2,13 @@ module.exports = {
   apps: [
     {
       name: 'ottfilter-backend',
-      script: 'python',
+      script: 'venv/bin/python',
       args: '-m uvicorn app.main:app --host 0.0.0.0 --port 8081',
       cwd: '/var/www/OTTfilter/backend',
       interpreter: 'none',
       env: {
         PYTHONUNBUFFERED: '1',
+        PATH: '/var/www/OTTfilter/backend/venv/bin:' + process.env.PATH,
       },
       error_file: '/var/www/OTTfilter/backend/logs/pm2-error.log',
       out_file: '/var/www/OTTfilter/backend/logs/pm2-out.log',
