@@ -47,6 +47,12 @@ echo "Running npm build..."
 npm run build
 cd ..
 
+# Kill any processes on ports 8081 and 10000
+echo ""
+echo "🧹 Cleaning up old processes..."
+lsof -ti:8081 | xargs kill -9 2>/dev/null || echo "  Port 8081 is free"
+lsof -ti:10000 | xargs kill -9 2>/dev/null || echo "  Port 10000 is free"
+
 echo ""
 echo "✅ Setup complete!"
 echo ""
@@ -54,7 +60,7 @@ echo "======================================"
 echo "Next Steps:"
 echo "======================================"
 echo ""
-echo "1. Start services:"
+echo "1. Start services (ports are now free):"
 echo "   pm2 start ecosystem.config.js"
 echo ""
 echo "2. Enable auto-start on reboot:"

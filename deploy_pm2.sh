@@ -42,6 +42,12 @@ npm install --quiet
 npm run build
 cd ..
 
+# Kill any processes on ports 8081 and 10000
+echo ""
+echo "🧹 Cleaning up old processes..."
+lsof -ti:8081 | xargs kill -9 2>/dev/null || echo "  Port 8081 is free"
+lsof -ti:10000 | xargs kill -9 2>/dev/null || echo "  Port 10000 is free"
+
 # Restart PM2 services
 echo ""
 echo "🔄 Restarting PM2 services..."
