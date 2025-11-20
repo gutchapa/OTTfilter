@@ -1,49 +1,13 @@
 {
   "version": 2,
-  "name": "ottfilter-frontend",
-  "builds": [
+  "buildCommand": "cd frontend && npm install --legacy-peer-deps && npm run build",
+  "outputDirectory": "frontend/build",
+  "rewrites": [
     {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "frontend/build"
-      }
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/manifest.json"
-    },
-    {
-      "src": "/service-worker.js",
-      "dest": "/service-worker.js",
-      "headers": {
-        "Service-Worker-Allowed": "/",
-        "Cache-Control": "public, max-age=0, must-revalidate"
-      }
-    },
-    {
-      "src": "/icon-(.*).png",
-      "dest": "/icon-$1.png"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
-  "env": {
-    "REACT_APP_API_URL": "@api_url"
-  },
-  "build": {
-    "env": {
-      "REACT_APP_API_URL": "@api_url"
-    }
-  },
   "headers": [
     {
       "source": "/service-worker.js",
