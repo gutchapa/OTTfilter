@@ -38,7 +38,7 @@ cd ..
 echo ""
 echo "🏗️  Rebuilding frontend..."
 cd frontend
-npm install --quiet
+npm install --legacy-peer-deps --quiet
 npm run build
 cd ..
 

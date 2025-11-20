@@ -41,7 +41,7 @@ echo "🏗️  Building frontend..."
 cd frontend
 if [ ! -d "build" ]; then
     echo "Running npm install..."
-    npm install
+    npm install --legacy-peer-deps
 fi
 echo "Running npm build..."
 npm run build
