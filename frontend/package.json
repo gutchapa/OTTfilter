@@ -59,6 +59,10 @@
     "build": "craco build",
     "test": "craco test"
   },
+  "engines": {
+    "node": "18.x",
+    "npm": ">=9.0.0"
+  },
   "browserslist": {
     "production": [
       ">0.2%",
