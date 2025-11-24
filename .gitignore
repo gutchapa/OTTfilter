@@ -86,3 +86,4 @@ android-sdk/
 # backup/  # Temporarily commented for code review
 debug_config.py
 backend_test.py
+chat_history.db

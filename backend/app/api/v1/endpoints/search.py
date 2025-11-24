@@ -342,7 +342,7 @@ async def natural_language_search(query: NaturalLanguageQuery):
 
         return {
             "intent": parsed.intent or "search_movie",
-            "parsed_query": parsed.model_dump(),
+            "parsed_query": parsed.model_dump() if hasattr(parsed, "model_dump") else parsed.__dict__,
             "movies": movies,
             "youtube_results": [v.model_dump() for v in youtube_results] if youtube_results else []
         }

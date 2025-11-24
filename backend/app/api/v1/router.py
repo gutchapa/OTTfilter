@@ -6,6 +6,10 @@ api_router = APIRouter()
 # Movies endpoints
 api_router.include_router(movies.router, prefix="/movies", tags=["movies"])
 
+from app.api.v1.endpoints.chat import router as chat_router
+# Chat endpoint
+api_router.include_router(chat_router, prefix="", tags=["chat"])
+
 # Search endpoints
 # Note: We map /natural to /natural-search to match old API if needed, 
 # but for v1 we will try to keep it clean and update frontend.

@@ -1,3 +1,14 @@
+import os
+import pytest
+
+# Setup dummy environment for Settings
+os.environ.setdefault('MONGO_URL', 'mongodb://127.0.0.1:27017')
+os.environ.setdefault('DB_NAME', 'ott_filter')
+os.environ.setdefault('TMDB_API_KEY', 'fake')
+os.environ.setdefault('OPENAI_API_KEY', 'fake')
+os.environ.setdefault('YOUTUBE_API_KEY', 'fake')
+os.environ.setdefault('OMDB_API_KEY', 'fake')
+
 import pytest
 from fastapi.testclient import TestClient
 from app.main import app
@@ -6,11 +17,12 @@ from app.main import app
 def setup_mocks(monkeypatch):
     # Stub database to return some cached results
     class DummyCollection:
-        async def find(self, *args, **kwargs): return self
+        def find(self, *args, **kwargs): return self
         def sort(self, *args, **kwargs): return self
         def limit(self, *args, **kwargs): return self
         async def to_list(self, *args, **kwargs): return [{'cached': True}]
 
+        async def update_one(self, *args, **kwargs): return None
     class DummyDB:
         @property
         def movies(self): return DummyCollection()
@@ -31,6 +43,19 @@ def setup_mocks(monkeypatch):
             self.sort_by = "popularity"
             self.platforms = None
             self.release_year = None
+        def model_dump(self):
+            return {
+                'query': self.query,
+                'intent': self.intent,
+                'keywords': self.keywords,
+                'cast_name': self.cast_name,
+                'languages': self.languages,
+                'genres': self.genres,
+                'min_rating': self.min_rating,
+                'sort_by': self.sort_by,
+                'platforms': self.platforms,
+                'release_year': self.release_year
+            }
 
     async def fake_parse_nl(q): return Parsed(q)
     monkeypatch.setattr("app.api.v1.endpoints.search.parse_natural_language_query", fake_parse_nl)
@@ -42,12 +67,18 @@ def setup_mocks(monkeypatch):
 
     # Stub process_movie to return model-like object
     class FakeMovie:
-        def __init__(self, data): self.data = data
+        def __init__(self, data):
+            self.data = data
+            self.tmdb_id = data.get("tmdb_id")
         def model_dump(self): return self.data
 
     async def fake_process(data): return FakeMovie(data)
+    # Make FakeMovie recognized as the Movie class inside the endpoint
+    monkeypatch.setattr("app.api.v1.endpoints.search.Movie", FakeMovie)
     monkeypatch.setattr("app.api.v1.endpoints.search.process_movie", fake_process)
 
+    # Stub fuzzy matching to always pass relevance filter
+    monkeypatch.setattr("app.api.v1.endpoints.search.fuzzy_match_score", lambda a, b: 1.0)
     # Stub other services
     monkeypatch.setattr("app.api.v1.endpoints.search.correct_actor_name", lambda x: x)
     monkeypatch.setattr("app.api.v1.endpoints.search.fuzzy_search_actor", lambda x: None)

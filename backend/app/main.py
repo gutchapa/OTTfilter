@@ -17,6 +17,11 @@ async def lifespan(app: FastAPI):
     # Shutdown
     await db.close_database_connection()
 
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[2]
+
 app = FastAPI(
     title="StreamFilter API",
     version="1.0.0",
@@ -35,6 +40,14 @@ app.add_middleware(
 # Include Routers
 # We prefix with /api to match the original structure
 app.include_router(api_router, prefix="/api")
+
+
+# Serve static frontend (SPA)
+app.mount(
+    "/",
+    StaticFiles(directory=BASE_DIR / "frontend" / "build", html=True),
+    name="static",
+)
 
 @app.get("/")
 async def root():
