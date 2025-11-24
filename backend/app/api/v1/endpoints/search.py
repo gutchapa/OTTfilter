@@ -102,10 +102,14 @@ async def natural_language_search(query: NaturalLanguageQuery):
         # Fetch movies from database first
         limit = 100 if parsed.platforms else 50
         movies = await db.movies.find(db_query, {'_id': 0}).sort(sort_field, -1).limit(limit).to_list(limit)
+        # Bypass DB cache for natural language movie searches
+        if parsed.keywords and parsed.intent == "search_movie":
+            movies = []  # ignore cached results, force fresh TMDB fetch
+
 
         logger.info(f"📊 MONGODB RESULTS: {len(movies)} movies found")
 
-        # If < 10 results from cache and not actor search, fetch fresh from TMDB
+        # Always fetch fresh TMDB data for natural movie searches; otherwise, if < 10 cached results and not actor search, fetch fresh
         if len(movies) < 10 and not parsed.cast_name:
             logger.info(f"⚠️  Only {len(movies)} cached results, fetching from TMDB...")
 
