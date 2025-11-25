@@ -6,14 +6,13 @@ from app.models.movie import ParsedQuery
 from typing import List, Optional
 
 settings = get_settings()
-openai.api_key = settings.OPENAI_API_KEY
 logger = logging.getLogger(__name__)
 
 # openai.api_key set below
 
 async def parse_natural_language_query(query: str) -> ParsedQuery:
     """Parse natural language query using OpenAI to extract filters"""
-    if not settings.OPENAI_API_KEY:
+    if not openai_client:
         # Fallback: basic parsing without AI
         import re
         query_lower = query.lower()
@@ -236,12 +235,12 @@ Return only valid JSON, no explanations."""
 
 async def generate_content_warnings(title: str, genres: List[str], synopsis: str, certification: Optional[str]) -> List[str]:
     """Use AI to generate detailed content warnings based on movie info"""
-    if not settings.OPENAI_API_KEY or not certification:
+    if not openai_client or not certification:
         return []
-
+    
     try:
         genre_str = ", ".join(genres) if genres else "Unknown"
-
+        
         prompt = f"""Given this movie information, provide specific content warnings that explain WHY it has this rating.
 
 Movie: {title}
@@ -283,16 +282,16 @@ Return ONLY a JSON array of strings, no explanations:
             # If it's a dict with string values, convert to list
             return list(result.values()) if result else []
         return []
-
+        
     except Exception as e:
         logger.error(f"Error generating content warnings: {str(e)}")
         return []
 
 async def correct_actor_name(misspelled_name: str) -> str:
     """Use LLM to correct actor name spelling"""
-    if not settings.OPENAI_API_KEY:
+    if not openai_client:
         return misspelled_name
-
+    
     try:
         prompt = f"""Given this possibly misspelled Indian actor/actress name: "{misspelled_name}"
 

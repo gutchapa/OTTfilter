@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+motor
+pymongo
+openai
+google-api-python-client
+pydantic>=1.8,<1.11
+python-dotenv
+httpx
+requests
+python-multipart
+email-validator
+jinja2

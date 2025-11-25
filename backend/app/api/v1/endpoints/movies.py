@@ -78,7 +78,7 @@ async def discover_movies(
             bulk_operations = [
                 UpdateOne(
                     {'tmdb_id': movie.tmdb_id},
-                    {'$set': movie.model_dump()},
+                    {'$set': movie.dict()},
                     upsert=True
                 )
                 for movie in movies
@@ -87,7 +87,7 @@ async def discover_movies(
                 await db.movies.bulk_write(bulk_operations)
 
         # JioHotstar rebrand for new movies too
-        movies_dicts = [m.model_dump() for m in movies]
+        movies_dicts = [m.dict() for m in movies]
         for movie in movies_dicts:
             if 'ott_platforms' in movie and movie['ott_platforms']:
                 movie['ott_platforms'] = [
