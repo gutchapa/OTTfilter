@@ -12,6 +12,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    # updated container name to valid format without angle brackets
     container_name: <secret_hidden>-backend
     depends_on:
       - ott-mongo
