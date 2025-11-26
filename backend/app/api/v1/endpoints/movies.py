@@ -102,7 +102,7 @@ async def discover_movies(
         }
 
     except Exception as e:
-        logger.error(f"Error in discover_movies: {str(e)}")
+        logger.exception("Error in discover_movies")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/filter", response_model=List[Movie])
