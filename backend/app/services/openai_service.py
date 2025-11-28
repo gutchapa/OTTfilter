@@ -89,14 +89,34 @@ async def parse_natural_language_query(query: str) -> ParsedQuery:
         keywords_clean = query
         filter_words = ['top', 'best', 'greatest', 'latest', 'recent', 'new', 'movies', 'movie', 'film', 'films']
 
+        # Check if query is ONLY filter words (e.g., "best movies", "new films")
+        # In such cases, treat as filter query, not title search
+        query_words = query.lower().split()
+        only_filter_words = all(word in filter_words or word.isdigit() or word in ['tamil', 'hindi', 'telugu', 'malayalam', 'kannada', 'english'] for word in query_words)
+
         if release_year:
             keywords_clean = keywords_clean.replace(str(release_year), '')
 
         for word in filter_words:
             keywords_clean = re.sub(r'\b' + word + r'\b', '', keywords_clean, flags=re.IGNORECASE)
 
-        keywords_clean = re.sub(r'\b\d+\b', '', keywords_clean)
+        # Only remove standalone digits if we extracted a year AND there are other words
+        # This prevents movie titles like "2012" from being completely stripped
+        if release_year and len(keywords_clean.strip()) > 0:
+            keywords_clean = re.sub(r'\b\d+\b', '', keywords_clean)
+
         keywords_clean = ' '.join(keywords_clean.split()).strip()
+
+        # If keywords were stripped to nothing but original query had substance,
+        # use the original query (e.g., "2012" movie title should stay as "2012")
+        if not keywords_clean and not only_filter_words and query.strip():
+            keywords_clean = query.strip()
+            # Remove filter words one more time
+            for word in filter_words:
+                keywords_clean = re.sub(r'\b' + word + r'\b', '', keywords_clean, flags=re.IGNORECASE).strip()
+            # If still empty after cleanup, use original
+            if not keywords_clean:
+                keywords_clean = query.strip()
 
         return ParsedQuery(
             keywords=keywords_clean if keywords_clean else None,

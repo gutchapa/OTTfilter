@@ -17,8 +17,11 @@ logger = logging.getLogger(__name__)
 async def natural_language_search(query: NaturalLanguageQuery):
     """Process natural language search query with all 27 features"""
     try:
+        logger.info(f"🔍 SEARCH REQUEST: '{query.query}'")
+
         # 1. Parse query with AI (with fallback parser)
         parsed = await parse_natural_language_query(query.query)
+        logger.info(f"📋 PARSED QUERY: keywords='{parsed.keywords}', intent='{parsed.intent}', genres={parsed.genres}, languages={parsed.languages}, platforms={parsed.platforms}, min_rating={parsed.min_rating}, release_year={parsed.release_year}")
 
         # 2. Search YouTube if intent matches
         youtube_results = []
@@ -101,6 +104,15 @@ async def natural_language_search(query: NaturalLanguageQuery):
 
         # Fetch movies from database first
         limit = 100 if parsed.platforms else 50
+
+        # Safety check: if db_query is completely empty and no keywords, fetch popular movies
+        if not db_query and not parsed.keywords:
+            logger.info("⚠️  Empty query detected, fetching popular movies")
+            # Get recent popular movies
+            from datetime import datetime
+            current_year = datetime.now().year
+            db_query = {'release_date': {'$regex': f'^({current_year}|{current_year-1}|{current_year-2})'}}
+
         movies = await db.movies.find(db_query, {'_id': 0}).sort(sort_field, -1).limit(limit).to_list(limit)
 
         logger.info(f"📊 MONGODB RESULTS: {len(movies)} movies found")
