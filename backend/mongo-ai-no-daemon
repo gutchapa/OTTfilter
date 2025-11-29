@@ -1,0 +1,37 @@
+import sys, os, asyncio, time
+from types import SimpleNamespace
+
+# 1) Make our FastAPI backend code importable
+#    Adjust path to point at OTTfilter/backend so 'app' is on PYTHONPATH
+sys.path.insert(0, os.path.abspath("OTTfilter/backend"))
+
+import app.services.openai_utils as u
+
+# 2) Fake out the real API call so we can test in memory
+async def _fake_acreate(model, messages, **kwargs):
+    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="FAKE_OK"))])
+u.ORIG_ACREATE = _fake_acreate
+
+async def main():
+    # A) Cache layer
+    msgs = u.build_payload("ping", include_aux=True, aux_prompt="AUX")
+    t0 = time.time()
+    r1 = await u.acreate_cached("gpt-3.5-turbo", msgs)
+    t1 = time.time()
+    r2 = await u.acreate_cached("gpt-3.5-turbo", msgs)
+    t2 = time.time()
+    print("Cache:", f"1st {t1-t0:.4f}s, 2nd {t2-t1:.4f}s, same? {r1 is r2}")
+
+    # B) Elective injection
+    p1 = u.build_payload("foo", include_aux=True, aux_prompt="AUX")
+    p2 = u.build_payload("bar", include_aux=True, aux_prompt="AUX")
+    print("Inject A once:", p1)
+    print("No 2nd AUX:", p2)
+
+    # C) Summarization
+    long_msgs = [{"role":"user","content":str(i)} for i in range(10)]
+    summed = await u.summarize_messages(long_msgs)
+    print(f"Summarized length: {len(summed)} (≤ {u.MAX_HISTORY+1})")
+    print("First entry:", summed[0])
+
+asyncio.run(main())
