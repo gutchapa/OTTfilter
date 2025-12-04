@@ -25,6 +25,7 @@ export const MovieProvider = ({ children }) => {
     const loadInitialData = async () => {
         try {
             setLoading(true);
+            setMovies([]); // Clear previous movies before loading new ones
             const [moviesData, optionsData] = await Promise.all([
                 movieService.discover(1),
                 movieService.getFilterOptions()
@@ -49,6 +50,7 @@ export const MovieProvider = ({ children }) => {
 
         try {
             setLoading(true);
+            setMovies([]); // Clear previous results
             if (useNatural) {
                 const data = await movieService.searchNatural(query);
                 setMovies(data.movies || []);
@@ -75,6 +77,7 @@ export const MovieProvider = ({ children }) => {
     const filterMovies = async (filters) => {
         try {
             setLoading(true);
+            setMovies([]); // Clear previous results
             const data = await movieService.filterMovies(filters);
             setMovies(data);
             toast.success(`Found ${data.length} movies`);

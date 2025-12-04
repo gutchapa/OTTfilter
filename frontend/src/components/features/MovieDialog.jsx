@@ -142,7 +142,7 @@ export const MovieDialog = ({ movie, onClose }) => {
                                     {movie.release_date && (
                                         <div>
                                             <h3 className="font-semibold mb-1">Release Date</h3>
-                                            <p className="text-gray-700">{new Date(movie.release_date).toLocaleDateString()}</p>
+                                            <p className="text-gray-700">{new Date(movie.release_date).toLocaleDateString('en-GB')}</p>
                                         </div>
                                     )}
                                     {movie.certification && (
