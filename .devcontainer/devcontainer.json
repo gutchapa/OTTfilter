@@ -1,0 +1,19 @@
+{
+  "name": "OTTfilter DevContainer",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "backend",
+  "workspaceFolder": "/workspace/OTTfilter",
+  "shutdownAction": "stopCompose",
+  "runServices": ["ott-mongo", "backend", "frontend"],
+  "extensions": [
+    "ms-python.python",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint"
+  ],
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "postCreateCommand": " \
+    cd backend && python3.10 -m venv venv && . venv/bin/activate && pip install -r requirements.txt && \
+    cd ../frontend && npm install --legacy-peer-deps ",
+}

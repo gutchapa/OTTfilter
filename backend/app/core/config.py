@@ -1,4 +1,4 @@
-from pydantic_settings import BaseSettings
+from pydantic import BaseSettings
 from functools import lru_cache
 from typing import Optional
 
@@ -15,7 +15,7 @@ class Settings(BaseSettings):
         extra = "ignore"
         # Look for .env in the backend directory (parent of app)
         import os
-        env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env")
+        env_file = '.env'
         env_file_encoding = 'utf-8'
 
 @lru_cache

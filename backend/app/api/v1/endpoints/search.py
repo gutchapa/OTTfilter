@@ -210,11 +210,11 @@ async def natural_language_search(query: NaturalLanguageQuery):
                     )
                     for m in batch_movies:
                         if m is not None and isinstance(m, Movie):
-                            movies.append(m.model_dump())
+                            movies.append(m.dict())
                             # Cache it
                             await db.movies.update_one(
                                 {'tmdb_id': m.tmdb_id},
-                                {'$set': m.model_dump()},
+                                {'$set': m.dict()},
                                 upsert=True
                             )
 
@@ -272,10 +272,10 @@ async def natural_language_search(query: NaturalLanguageQuery):
                     for movie_data in movies_data['results'][:10]:
                         m = await process_movie(movie_data)
                         if m:
-                            movies.append(m.model_dump())
+                            movies.append(m.dict())
                             await db.movies.update_one(
                                 {'tmdb_id': m.tmdb_id},
-                                {'$set': m.model_dump()},
+                                {'$set': m.dict()},
                                 upsert=True
                             )
 
@@ -338,9 +338,9 @@ async def natural_language_search(query: NaturalLanguageQuery):
 
         return {
             "intent": parsed.intent or "search_movie",
-            "parsed_query": parsed.model_dump(),
+            "parsed_query": parsed.dict(),
             "movies": movies,
-            "youtube_results": [v.model_dump() for v in youtube_results] if youtube_results else []
+            "youtube_results": [v.dict() for v in youtube_results] if youtube_results else []
         }
 
     except Exception as e:

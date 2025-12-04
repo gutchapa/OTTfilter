@@ -1,0 +1,45 @@
+version: "3.8"
+services:
+  ott-mongo:
+    image: mongo:6.0
+    container_name: ott-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    # updated container name to valid format without angle brackets
+    container_name: <secret_hidden>-backend
+    depends_on:
+      - ott-mongo
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./backend:/workspace/OTTfilter/backend
+    working_dir: /workspace/OTTfilter/backend
+    command: bash -lc "\
+      python3.10 -m venv venv && \
+      . venv/bin/activate && \
+      pip install -r requirements.txt && \
+      uvicorn app.main:app --host 0.0.0.0 --port 8081 --reload"
+
+  frontend:
+    image: node:18
+    container_name: <secret_hidden>-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/workspace/OTTfilter/frontend
+    working_dir: /workspace/OTTfilter/frontend
+    command: bash -lc "\
+      npm install --legacy-peer-deps && \
+      npx craco start --host 0.0.0.0"
+
+volumes:
+  mongodb-data: {}

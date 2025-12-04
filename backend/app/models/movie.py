@@ -1,9 +1,8 @@
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field
 from typing import List, Optional
 
 class Movie(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    
+    class Config: orm_mode = True
     id: str
     tmdb_id: int
     title: str

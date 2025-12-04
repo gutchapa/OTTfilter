@@ -1,4 +1,4 @@
-from openai import AsyncOpenAI
+import openai
 import json
 import logging
 from app.core.config import get_settings
@@ -6,13 +6,14 @@ from app.models.movie import ParsedQuery
 from typing import List, Optional
 
 settings = get_settings()
+openai.api_key = settings.OPENAI_API_KEY
 logger = logging.getLogger(__name__)
 
-openai_client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY) if settings.OPENAI_API_KEY else None
+# openai.api_key set below
 
 async def parse_natural_language_query(query: str) -> ParsedQuery:
     """Parse natural language query using OpenAI to extract filters"""
-    if not openai_client:
+    if not settings.OPENAI_API_KEY:
         # Fallback: basic parsing without AI
         import re
         query_lower = query.lower()
@@ -208,14 +209,14 @@ Examples:
 
 Return only valid JSON, no explanations."""
 
-        response = await openai_client.chat.completions.create(
+        response = await openai.ChatCompletion.acreate(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": f"Parse this query: {query}"}
             ],
             temperature=0.3,
-            response_format={"type": "json_object"}
+            
         )
 
         parsed_data = json.loads(response.choices[0].message.content)
@@ -225,7 +226,7 @@ Return only valid JSON, no explanations."""
         logger.info(f"🤖 OPENAI PARSED: {json.dumps(parsed_data, indent=2)}")
 
         parsed_query = ParsedQuery(**parsed_data)
-        logger.info(f"📋 FINAL PARSED: {parsed_query.model_dump()}")
+        logger.info(f"📋 FINAL PARSED: {parsed_query.dict()}")
 
         return parsed_query
 
@@ -235,12 +236,12 @@ Return only valid JSON, no explanations."""
 
 async def generate_content_warnings(title: str, genres: List[str], synopsis: str, certification: Optional[str]) -> List[str]:
     """Use AI to generate detailed content warnings based on movie info"""
-    if not openai_client or not certification:
+    if not settings.OPENAI_API_KEY or not certification:
         return []
-    
+
     try:
         genre_str = ", ".join(genres) if genres else "Unknown"
-        
+
         prompt = f"""Given this movie information, provide specific content warnings that explain WHY it has this rating.
 
 Movie: {title}
@@ -259,7 +260,7 @@ For any rating: mention sexual content, nudity, profanity, drug use if applicabl
 Return ONLY a JSON array of strings, no explanations:
 ["warning 1", "warning 2", "warning 3"]"""
 
-        response = await openai_client.chat.completions.create(
+        response = await openai.ChatCompletion.acreate(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a content rating expert who provides detailed, helpful warnings for families."},
@@ -267,7 +268,7 @@ Return ONLY a JSON array of strings, no explanations:
             ],
             temperature=0.3,
             max_tokens=150,
-            response_format={"type": "json_object"}
+            
         )
         
         result = json.loads(response.choices[0].message.content)
@@ -282,16 +283,16 @@ Return ONLY a JSON array of strings, no explanations:
             # If it's a dict with string values, convert to list
             return list(result.values()) if result else []
         return []
-        
+
     except Exception as e:
         logger.error(f"Error generating content warnings: {str(e)}")
         return []
 
 async def correct_actor_name(misspelled_name: str) -> str:
     """Use LLM to correct actor name spelling"""
-    if not openai_client:
+    if not settings.OPENAI_API_KEY:
         return misspelled_name
-    
+
     try:
         prompt = f"""Given this possibly misspelled Indian actor/actress name: "{misspelled_name}"
 
@@ -304,7 +305,7 @@ Correct it to the most likely proper spelling. Common Indian actors include:
 
 Return ONLY the corrected name, nothing else. If unsure, return the original name."""
 
-        response = await openai_client.chat.completions.create(
+        response = await openai.ChatCompletion.acreate(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are an expert in Indian cinema actor names."},
