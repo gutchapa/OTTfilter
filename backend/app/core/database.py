@@ -12,7 +12,12 @@ class Database:
 
     async def connect_to_database(self):
         try:
-            self.client = AsyncIOMotorClient(settings.MONGO_URL, tls=True, tlsAllowInvalidCertificates=True, tlsAllowInvalidHostnames=True)
+            # Disable TLS for localhost connections
+            is_local = 'localhost' in settings.MONGO_URL or '127.0.0.1' in settings.MONGO_URL
+            if is_local:
+                self.client = AsyncIOMotorClient(settings.MONGO_URL)
+            else:
+                self.client = AsyncIOMotorClient(settings.MONGO_URL, tls=True, tlsAllowInvalidCertificates=True, tlsAllowInvalidHostnames=True)
             self.db = self.client[settings.DB_NAME]
             logger.info("Connected to MongoDB")
         except Exception as e:

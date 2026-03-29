@@ -141,6 +141,14 @@ THEME/DESCRIPTION UNDERSTANDING (IMPORTANT):
 - "inspiring", "biographical" -> genres: ["Drama"]
 - ONLY use keywords for ACTUAL song names or specific movie titles, not descriptions
 
+CRITICAL: MOVIE TITLE vs GENRE AMBIGUITY
+- When a query contains words that could be BOTH genres AND a movie title, check if it could be a known movie
+- Examples: "love action drama" -> This is a 2019 Malayalam movie starring Nivin Pauly and Nayanthara, put in keywords
+- "action hero" -> This is a movie title, put in keywords
+- "comedy nights" -> This is a show title, put in keywords
+- If the phrase is a known Indian movie title, use keywords NOT genres
+- When in doubt: If the phrase is 2-4 words that could form a title, prefer keywords over genre mapping
+
 MOVIE TITLE SEARCH (CRITICAL):
 - If user types a single word or phrase that could be a movie name, put it in keywords
 - Examples: "conjuring" -> keywords: "conjuring", intent: "search_movie"
@@ -206,6 +214,9 @@ Examples:
 - "conjuring" -> {"keywords": "conjuring", "intent": "search_movie"}
 - "Oscar 2025" -> {"min_rating": 6.5, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
 - "top 10 2024 tamil movies" -> {"languages": ["Tamil"], "min_rating": 7.0, "release_year": 2024, "sort_by": "rating", "intent": "filter"}
+- "love action drama" -> {"keywords": "love action drama", "intent": "search_movie"}  // Malayalam movie title, NOT genres
+- "action hero" -> {"keywords": "action hero", "intent": "search_movie"}  // Movie title
+- "comedy nights" -> {"keywords": "comedy nights", "intent": "search_movie"}  // Show title
 
 Return only valid JSON, no explanations."""
 

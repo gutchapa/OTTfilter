@@ -19,6 +19,27 @@ async def natural_language_search(query: NaturalLanguageQuery):
     try:
         # 1. Parse query with AI (with fallback parser)
         parsed = await parse_natural_language_query(query.query)
+        
+        # 1b. SMART FALLBACK: If AI parsed as genres only but query looks like a title, treat as title search
+        # Example: "love action drama" -> AI sees genres, but it's actually a movie title
+        if not parsed.keywords and parsed.intent == "search_movie":
+            query_lower = query.query.lower().strip()
+            words = query_lower.split()
+            
+            # If 2-4 words that could be a title (not just single genre words)
+            genre_words = {'action', 'comedy', 'drama', 'romance', 'thriller', 'horror', 'adventure', 
+                          'fantasy', 'sci-fi', 'science fiction', 'crime', 'mystery', 'family', 'animation'}
+            
+            # Check if this looks like a specific title vs just genres
+            # If all words are genre words AND <= 2 words, probably just genres
+            # If 3+ words or contains non-genre words, probably a title
+            non_genre_words = [w for w in words if w not in genre_words]
+            
+            if len(words) >= 3 or (len(words) >= 2 and non_genre_words):
+                # This looks like it could be a movie title
+                logger.info(f"🎬 SMART FALLBACK: Treating '{query.query}' as movie title (was parsed as genres only)")
+                parsed.keywords = query.query
+                parsed.genres = None  # Clear genres to do title search instead
 
         # 2. Search YouTube if intent matches
         youtube_results = []
