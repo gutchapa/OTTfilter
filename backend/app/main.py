@@ -25,8 +25,12 @@ app = FastAPI(
 
 # CORS: allow frontend dev and production origins
 origins = [
-"http://localhost:3000",
-"http://localhost:41838",
+    "http://localhost:3000",
+    "http://localhost:41838",
+    "http://72.60.192.150:10000",
+    "http://72.60.192.150:3000",
+    "http://*:10000",
+    "*",  # Allow all origins for now (restrict in production)
 ]
 app.add_middleware(
     CORSMiddleware,

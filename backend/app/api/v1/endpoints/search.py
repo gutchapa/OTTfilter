@@ -31,7 +31,6 @@ async def natural_language_search(query: NaturalLanguageQuery):
             genre_words = {'action', 'comedy', 'drama', 'romance', 'thriller', 'horror', 'adventure', 
                           'fantasy', 'sci-fi', 'science fiction', 'crime', 'mystery', 'family', 'animation'}
             
-            # Check if this looks like a specific title vs just genres
             non_genre_words = [w for w in words if w not in genre_words]
             
             if len(words) >= 3 or (len(words) >= 2 and non_genre_words):
