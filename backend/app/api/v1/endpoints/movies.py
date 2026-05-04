@@ -164,8 +164,16 @@ async def get_filter_options():
         languages = await db.movies.distinct('language')
         languages = sorted([lang for lang in languages if lang])
 
-        platforms = await db.movies.distinct('ott_platforms')
-        platforms = sorted([p for p in platforms if p])
+        raw_platforms = await db.movies.distinct('ott_platforms')
+        # Normalize: ott_platforms can be str or dict {"name": "...", ...}
+        platform_names = set()
+        for p in raw_platforms:
+            if p:
+                if isinstance(p, dict):
+                    platform_names.add(p.get('name', ''))
+                elif isinstance(p, str):
+                    platform_names.add(p)
+        platforms = sorted([p for p in platform_names if p])
 
         return FilterOptions(
             genres=genres,

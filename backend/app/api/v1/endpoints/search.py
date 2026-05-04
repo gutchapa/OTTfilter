@@ -19,7 +19,26 @@ async def natural_language_search(query: NaturalLanguageQuery):
     try:
         # 1. Parse query with AI (with fallback parser)
         parsed = await parse_natural_language_query(query.query)
-
+        
+        # 1b. SMART FALLBACK: If AI parsed as genres only but query looks like a title, treat as title search
+        # Example: "love action drama" -> AI sees genres, but it's actually a movie title
+        # BUT: Don't override if cast_name is already set (e.g., "Oriol Paulo movies")
+        if not parsed.keywords and not parsed.cast_name and parsed.intent == "search_movie":
+            query_lower = query.query.lower().strip()
+            words = query_lower.split()
+            
+            # If 2-4 words that could be a title (not just single genre words)
+            genre_words = {'action', 'comedy', 'drama', 'romance', 'thriller', 'horror', 'adventure', 
+                          'fantasy', 'sci-fi', 'science fiction', 'crime', 'mystery', 'family', 'animation'}
+            
+            # Check if this looks like a specific title vs just genres
+            non_genre_words = [w for w in words if w not in genre_words]
+            
+            if len(words) >= 3 or (len(words) >= 2 and non_genre_words):
+                logger.info(f"SMART FALLBACK: Treating '{query.query}' as movie title")
+                parsed.keywords = query.query
+                parsed.genres = None
+        
         # 2. Search YouTube if intent matches
         youtube_results = []
         if parsed.intent == "search_youtube" or parsed.intent == "search_song":
@@ -245,7 +264,66 @@ async def natural_language_search(query: NaturalLanguageQuery):
             movies = lead_movies + supporting_movies
             logger.info(f"Filtered: {len(lead_movies)} lead roles, {len(supporting_movies)} supporting roles for '{parsed.cast_name}'")
 
-        # Fuzzy actor search if < 10 results and not searching for specific movie
+        # DIRECTOR SEARCH: If we have cast_name (could be director), search TMDB for their filmography
+        # Only run when user is searching for an actor/director WITHOUT a specific movie title
+        if len(movies) < 5 and parsed.cast_name and not parsed.keywords:
+            logger.info(f"🎬 Only {len(movies)} movies found locally for '{parsed.cast_name}', searching TMDB person...")
+            
+            # Search for person on TMDB
+            person_search = await fetch_tmdb_data('/search/person', {'query': parsed.cast_name})
+            
+            if person_search and person_search.get('results'):
+                # Find best match
+                best_match = None
+                for person in person_search['results']:
+                    name = person.get('name', '').lower()
+                    if parsed.cast_name.lower() in name or name in parsed.cast_name.lower():
+                        best_match = person
+                        break
+                
+                if not best_match:
+                    best_match = person_search['results'][0]  # Use first result
+                
+                person_id = best_match.get('id')
+                person_name = best_match.get('name')
+                logger.info(f"🎬 Found person: {person_name} (ID: {person_id})")
+                
+                # Get their movie credits
+                credits = await fetch_tmdb_data(f'/person/{person_id}/movie_credits')
+                
+                if credits:
+                    # Get movies they directed
+                    directed_movies = [m for m in credits.get('crew', []) if m.get('job') == 'Director']
+                    logger.info(f"🎬 {person_name} directed {len(directed_movies)} movies")
+                    
+                    # Sort by popularity or release date
+                    directed_movies.sort(key=lambda x: x.get('popularity', 0), reverse=True)
+                    
+                    for movie_data in directed_movies[:15]:
+                        m = await process_movie(movie_data)
+                        if m:
+                            movies.append(m.dict())
+                            await db.movies.update_one(
+                                {'tmdb_id': m.tmdb_id},
+                                {'$set': m.dict()},
+                                upsert=True
+                            )
+                    
+                    # Also get movies they acted in
+                    acted_movies = credits.get('cast', [])
+                    logger.info(f"🎬 {person_name} acted in {len(acted_movies)} movies")
+                    
+                    for movie_data in acted_movies[:10]:
+                        m = await process_movie(movie_data)
+                        if m:
+                            movies.append(m.dict())
+                            await db.movies.update_one(
+                                {'tmdb_id': m.tmdb_id},
+                                {'$set': m.dict()},
+                                upsert=True
+                            )
+
+        # Fuzzy actor search fallback (only when keywords not set - pure actor search)
         if len(movies) < 10 and parsed.cast_name and not parsed.keywords:
             logger.info(f"🎭 Only {len(movies)} movies found for actor '{parsed.cast_name}', trying TMDB actor search...")
             corrected_name = await correct_actor_name(parsed.cast_name)
@@ -296,6 +374,20 @@ async def natural_language_search(query: NaturalLanguageQuery):
             if filtered_count > 0:
                 logger.info(f"🎬 Filtered out {filtered_count} Oscar compilation films")
 
+        # DEDUPLICATION: Remove duplicate movies by tmdb_id
+        seen_tmdb_ids = set()
+        unique_movies = []
+        for movie in movies:
+            tmdb_id = movie.get('tmdb_id')
+            if tmdb_id and tmdb_id not in seen_tmdb_ids:
+                seen_tmdb_ids.add(tmdb_id)
+                unique_movies.append(movie)
+            elif not tmdb_id:
+                # Include movies without tmdb_id (shouldn't happen but safety)
+                unique_movies.append(movie)
+        movies = unique_movies
+        logger.info(f"🔄 After deduplication: {len(movies)} unique movies")
+
         # JioHotstar rebrand transformation
         for movie in movies:
             if 'ott_platforms' in movie and movie['ott_platforms']:
@@ -303,6 +395,36 @@ async def natural_language_search(query: NaturalLanguageQuery):
                     'JioHotstar' if platform == 'Disney+ Hotstar' else platform
                     for platform in movie['ott_platforms']
                 ]
+
+        # PRIORITIZE DIRECTOR MATCHES: If searching by cast_name (director), boost their movies to top
+        if parsed.cast_name:
+            cast_name_lower = parsed.cast_name.lower()
+            for movie in movies:
+                director = (movie.get('director') or '').lower()
+                cast = [c.lower() for c in movie.get('cast', [])]
+                
+                # MASSIVE boost for director match (ensures they appear first)
+                if cast_name_lower in director or director in cast_name_lower:
+                    movie['popularity'] = movie.get('popularity', 0) + 10000
+                    logger.info(f"⭐ DIRECTOR MATCH: Boosting '{movie.get('title')}' by 10000")
+                # Big boost for cast match
+                elif any(cast_name_lower in c or c in cast_name_lower for c in cast):
+                    movie['popularity'] = movie.get('popularity', 0) + 5000
+                    logger.info(f"⭐ CAST MATCH: Boosting '{movie.get('title')}' by 5000")
+        
+        # ALSO: If query contains name that matches director, boost those movies
+        # This handles cases like "Mirage Oriol Paulo" where AI parses as keywords not cast_name
+        query_lower = query.query.lower()
+        for movie in movies:
+            director = (movie.get('director') or '').lower()
+            if director and len(director) > 3:  # Avoid short name matches
+                # Check if director name appears in query
+                director_parts = director.split()
+                for part in director_parts:
+                    if len(part) > 3 and part in query_lower:
+                        movie['popularity'] = movie.get('popularity', 0) + 8000
+                        logger.info(f"⭐ QUERY DIRECTOR MATCH: Boosting '{movie.get('title')}' by 8000 for '{part}'")
+                        break
 
         # Smart sorting for movie title searches
         if parsed.keywords and parsed.intent == "search_movie":

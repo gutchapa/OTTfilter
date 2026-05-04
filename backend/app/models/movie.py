@@ -1,5 +1,11 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Union
+
+class OTTPlatform(BaseModel):
+    """OTT Platform with available countries and original language"""
+    name: str
+    countries: List[str] = []
+    language: Optional[str] = None  # Movie's original language (Tamil, Hindi, etc.)
 
 class Movie(BaseModel):
     class Config: orm_mode = True
@@ -19,7 +25,7 @@ class Movie(BaseModel):
     vote_count: int = 0
     release_date: Optional[str] = None
     synopsis: str = ""
-    ott_platforms: List[str] = []
+    ott_platforms: List[OTTPlatform] = []
     poster_url: Optional[str] = None
     backdrop_url: Optional[str] = None
     runtime: Optional[int] = None

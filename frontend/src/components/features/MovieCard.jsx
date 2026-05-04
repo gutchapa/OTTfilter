@@ -1,18 +1,38 @@
 import React from 'react';
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { openOTTApp } from "@/utils/ottLinks";
 
 const OTT_COLORS = {
     'Netflix': 'bg-red-600',
     'Prime Video': 'bg-blue-600',
+    'Disney+': 'bg-indigo-600',
     'Disney+ Hotstar': 'bg-indigo-600',
+    'JioHotstar': 'bg-indigo-600',
     'Jio Cinema': 'bg-purple-600',
     'Zee5': 'bg-orange-600',
     'SonyLIV': 'bg-green-600',
     'Voot': 'bg-yellow-600',
     'MX Player': 'bg-cyan-600',
     'Aha': 'bg-pink-600',
-    'Sun NXT': 'bg-amber-600'
+    'Sun NXT': 'bg-amber-600',
+    'VI Movies': 'bg-red-800',
+    'ManoramaMAX': 'bg-emerald-700',
+    // Global platforms
+    'Hulu': 'bg-green-500',
+    'Max': 'bg-purple-700',
+    'Apple TV+': 'bg-gray-800',
+    'Apple TV': 'bg-gray-700',
+    'YouTube Movies': 'bg-red-700',
+    'Google Play Movies': 'bg-blue-700',
+    'Paramount+': 'bg-blue-500',
+    'Peacock': 'bg-yellow-400',
+    'Crunchyroll': 'bg-orange-500',
+    'MUBI': 'bg-yellow-600',
+    'Criterion Channel': 'bg-gray-900',
+    'Tubi': 'bg-orange-600',
+    'Pluto TV': 'bg-yellow-500',
+    'Viki': 'bg-pink-500'
 };
 
 export const MovieCard = ({ movie, onClick }) => {
@@ -78,19 +98,57 @@ export const MovieCard = ({ movie, onClick }) => {
 
                         {/* OTT Platforms */}
                         <div className="flex flex-wrap gap-1">
-                            {movie.ott_platforms.slice(0, 2).map((platform, idx) => (
-                                <span
-                                    key={idx}
-                                    className={`text-[10px] text-white px-2 py-0.5 rounded ${OTT_COLORS[platform] || 'bg-gray-600'}`}
-                                >
-                                    {platform}
-                                </span>
-                            ))}
-                            {movie.ott_platforms.length > 2 && (
-                                <span className="text-[10px] text-gray-600 px-2 py-0.5 rounded bg-gray-100">
-                                    +{movie.ott_platforms.length - 2}
-                                </span>
-                            )}
+                            {movie.ott_platforms && movie.ott_platforms.length > 0 ? (
+                                <>
+                                    {movie.ott_platforms.slice(0, 2).map((platform, idx) => {
+                                        const platformName = platform.name || platform;
+                                        const countries = platform.countries || [];
+                                        const platLang = platform.language || movie.language;
+                                        const isRental = platformName.includes('(Rent)');
+                                        const cleanName = platformName.replace(' (Rent)', '');
+                                        
+                                        // Build tooltip with language and country info
+                                        let tooltip = '';
+                                        if (!countries.length) {
+                                            tooltip = `🇮🇳 India • Original: ${platLang}`;
+                                            if (platLang !== 'English' && platLang !== 'Hindi') {
+                                                tooltip += ' ⚠️ May only be available as dubbed version';
+                                            }
+                                        } else {
+                                            tooltip = `🌍 ${countries.slice(0,5).join(', ')}${countries.length>5?'...':''} • Original: ${platLang}`;
+                                        }
+                                        
+                                        return (
+                                            <button
+                                                key={idx}
+                                                onClick={(e) => openOTTApp(cleanName, movie.title, e)}
+                                                className={`text-[10px] text-white px-2 py-0.5 rounded hover:opacity-80 transition-opacity ${OTT_COLORS[cleanName] || 'bg-gray-600'}`}
+                                                title={tooltip}
+                                            >
+                                                {platformName}
+                                            </button>
+                                        );
+                                    })}
+                                    {movie.ott_platforms.length > 2 && (
+                                        <span className="text-[10px] text-gray-600 px-2 py-0.5 rounded bg-gray-100">
+                                            +{movie.ott_platforms.length - 2}
+                                        </span>
+                                    )}
+                                    <span className="text-[9px] text-gray-400 w-full mt-0.5">
+                                        {movie.ott_platforms.some(p => {
+                                            const lang = p.language || movie.language;
+                                            return !p.countries?.length && lang !== 'English' && lang !== 'Hindi';
+                                        }) ? '⚠️ Availability may be dubbed' : 'Hover for details'}
+                                    </span>
+                                </>
+                            ) : (() => {
+                                const isUpcoming = movie.release_date && new Date(movie.release_date) > new Date();
+                                return (
+                                    <span className={`text-[10px] italic ${isUpcoming ? 'text-blue-500' : 'text-gray-400'}`}>
+                                        {isUpcoming ? 'Coming soon — not yet released' : 'Not available in your region'}
+                                    </span>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>

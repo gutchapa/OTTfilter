@@ -88,45 +88,114 @@ async def get_movie_certification(tmdb_id: int) -> Optional[str]:
         logger.error(f"Error fetching certification: {str(e)}")
         return None
 
+# Global OTT provider name mappings
+PROVIDER_MAPPINGS = {
+    'Netflix': 'Netflix',
+    'Prime Video': 'Prime Video',
+    'Amazon Prime Video': 'Prime Video',
+    'Amazon': 'Prime Video',
+    'Disney Plus': 'Disney+',
+    'Disney+': 'Disney+',
+    'Hotstar': 'JioHotstar',
+    'Disney+ Hotstar': 'JioHotstar',
+    'JioHotstar': 'JioHotstar',
+    'Jio Cinema': 'Jio Cinema',
+    'Zee5': 'Zee5',
+    'ZEE5': 'Zee5',
+    'Sony Liv': 'SonyLIV',
+    'SonyLIV': 'SonyLIV',
+    'Sony': 'SonyLIV',
+    'Voot': 'Voot',
+    'MX Player': 'MX Player',
+    'Aha': 'Aha',
+    'Sun NXT': 'Sun NXT',
+    'Sun Nxt': 'Sun NXT',
+    'VI movies and tv': 'VI Movies',
+    'VI Movies': 'VI Movies',
+    'Amazon MX Player': 'MX Player',
+    'ManoramaMAX': 'ManoramaMAX',
+    'Hulu': 'Hulu',
+    'HBO Max': 'Max',
+    'Max': 'Max',
+    'Apple TV Plus': 'Apple TV+',
+    'Apple TV': 'Apple TV',
+    'Paramount Plus': 'Paramount+',
+    'Peacock': 'Peacock',
+    'Crunchyroll': 'Crunchyroll',
+    'MUBI': 'MUBI',
+    'Criterion Channel': 'Criterion Channel',
+    'Tubi': 'Tubi',
+    'Pluto TV': 'Pluto TV',
+    'Rakuten Viki': 'Viki',
+    'Viki': 'Viki',
+    'YouTube': 'YouTube Movies',
+    'YouTube Movies': 'YouTube Movies',
+    'Google Play': 'Google Play Movies',
+    'Google Play Movies': 'Google Play Movies',
+    'iTunes': 'Apple TV',
+    'Apple iTunes': 'Apple TV',
+}
+
+def _map_provider(provider_name: str) -> str:
+    """Map TMDB/JustWatch provider name to standardized platform name (case-insensitive)"""
+    name_lower = provider_name.lower()
+    # Sort by key length descending so "Amazon Prime Video" matches before "Amazon"
+    for key, value in sorted(PROVIDER_MAPPINGS.items(), key=lambda x: -len(x[0])):
+        if key.lower() in name_lower:
+            return value
+    return None
+
 async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = None):
-    """Get streaming availability for India with JustWatch integration"""
-    # Try TMDB first - check all monetization types (flatrate, free, ads)
+    """Get streaming availability - India first, then global"""
     data = await fetch_tmdb_data(f"/movie/{tmdb_id}/watch/providers")
-    providers = []
+    
+    # Track: India streaming, India rental, global by provider->countries
+    in_streaming = set()
+    in_rental = set()
+    global_streaming = {}  # provider_name -> [countries]
 
     if data and 'results' in data:
-        india_data = data['results'].get('IN', {})
+        for country_code, country_data in data['results'].items():
+            is_india = (country_code == 'IN')
+            
+            # Collect all provider types
+            all_providers = []
+            all_providers.extend([(p, 'stream') for p in country_data.get('flatrate', [])])
+            all_providers.extend([(p, 'stream') for p in country_data.get('free', [])])
+            all_providers.extend([(p, 'stream') for p in country_data.get('ads', [])])
+            all_providers.extend([(p, 'rent') for p in country_data.get('rent', [])])
+            all_providers.extend([(p, 'rent') for p in country_data.get('buy', [])])
+            
+            for provider, ptype in all_providers:
+                mapped = _map_provider(provider['provider_name'])
+                if not mapped:
+                    continue
+                    
+                if is_india:
+                    if ptype == 'stream':
+                        in_streaming.add(mapped)
+                    else:
+                        in_rental.add(mapped)
+                else:
+                    if mapped not in global_streaming:
+                        global_streaming[mapped] = []
+                    if country_code not in global_streaming[mapped]:
+                        global_streaming[mapped].append(country_code)
 
-        # Check all monetization types: flatrate (subscription), free (with ads), ads
-        all_providers = []
-        all_providers.extend(india_data.get('flatrate', []))
-        all_providers.extend(india_data.get('free', []))
-        all_providers.extend(india_data.get('ads', []))
-
-        for provider in all_providers:
-            provider_name = provider['provider_name']
-            if 'Netflix' in provider_name:
-                providers.append('Netflix')
-            elif 'Prime' in provider_name or 'Amazon' in provider_name:
-                providers.append('Prime Video')
-            elif 'Disney' in provider_name or 'Hotstar' in provider_name:
-                providers.append('JioHotstar')  # Rebrand to JioHotstar
-            elif 'Jio' in provider_name:
-                providers.append('Jio Cinema')
-            elif 'Zee5' in provider_name or 'ZEE5' in provider_name:
-                providers.append('Zee5')
-            elif 'Sony' in provider_name:
-                providers.append('SonyLIV')
-            elif 'Voot' in provider_name:
-                providers.append('Voot')
-            elif 'MX' in provider_name:
-                providers.append('MX Player')
-            elif 'Aha' in provider_name:
-                providers.append('Aha')
-            elif 'Sun' in provider_name:
-                providers.append('Sun NXT')
-            elif 'YouTube' not in provider_name:  # Exclude YouTube Movies/Rent
-                providers.append(provider_name)
+    # Build result: India first, then global sorted by country count
+    providers = []
+    
+    # India streaming (top priority)
+    for name in sorted(in_streaming):
+        providers.append({'name': name})
+    
+    # India rental
+    for name in sorted(in_rental):
+        providers.append({'name': f'{name} (Rent)'})
+    
+    # Global providers sorted by most countries first
+    for name, countries in sorted(global_streaming.items(), key=lambda x: -len(x[1])):
+        providers.append({'name': name, 'countries': sorted(countries)[:15]})
 
     # Try JustWatch GraphQL API if TMDB didn't give results
     if not providers and title and settings.JUSTWATCH_ENABLED:
@@ -193,31 +262,14 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
 
                         offers = node.get('offers', [])
                         for offer in offers:
-                            if offer.get('monetizationType') in ['FLATRATE', 'FREE', 'ADS']:
-                                package = offer.get('package', {})
-                                provider_name = package.get('clearName', '')
-
-                                # Map to our platform names
-                                if 'Netflix' in provider_name:
-                                    providers.append('Netflix')
-                                elif 'Prime' in provider_name or 'Amazon' in provider_name:
-                                    providers.append('Prime Video')
-                                elif 'Disney' in provider_name or 'Hotstar' in provider_name:
-                                    providers.append('JioHotstar')
-                                elif 'Jio Cinema' in provider_name:
-                                    providers.append('Jio Cinema')
-                                elif 'Zee5' in provider_name or 'ZEE5' in provider_name:
-                                    providers.append('Zee5')
-                                elif 'Sony' in provider_name:
-                                    providers.append('SonyLIV')
-                                elif 'Voot' in provider_name:
-                                    providers.append('Voot')
-                                elif 'MX' in provider_name:
-                                    providers.append('MX Player')
-                                elif 'Aha' in provider_name:
-                                    providers.append('Aha')
-                                elif 'Sun NXT' in provider_name:
-                                    providers.append('Sun NXT')
+                            package = offer.get('package', {})
+                            provider_name = package.get('clearName', '')
+                            mapped = _map_provider(provider_name)
+                            if mapped:
+                                if offer.get('monetizationType') in ['FLATRATE', 'FREE', 'ADS']:
+                                    providers.append({'name': mapped})
+                                elif offer.get('monetizationType') in ['RENT', 'BUY']:
+                                    providers.append({'name': f'{mapped} (Rent)'})
 
                         if providers:
                             break
@@ -227,7 +279,15 @@ async def get_streaming_providers(tmdb_id: int, title: str = None, year: int = N
         except Exception as e:
             logger.warning(f"JustWatch lookup failed: {str(e)}")
 
-    return list(set(providers))  # Remove duplicates
+    # Deduplicate by name
+    seen = set()
+    unique = []
+    for p in providers:
+        key = p['name'] if isinstance(p, dict) else p
+        if key not in seen:
+            seen.add(key)
+            unique.append(p)
+    return unique
 
 async def process_movie(movie_data: dict, generate_warnings: bool = False) -> Optional[Movie]:
     """Process a movie from TMDB and enrich with additional data"""
@@ -267,8 +327,11 @@ async def process_movie(movie_data: dict, generate_warnings: bool = False) -> Op
         original_lang = details.get('original_language', 'en')
         language_name = language_map.get(original_lang, original_lang.upper())
 
-        # Don't assign random OTT platforms - leave empty if not found
-        # Honesty is better than fake data
+        # Attach original language to each OTT provider so users know what to expect
+        # Regional films may only be available as dubbed versions on some platforms
+        for p in providers:
+            if isinstance(p, dict) and 'language' not in p:
+                p['language'] = language_name
 
         movie = Movie(
             id=str(uuid.uuid4()),
@@ -287,7 +350,7 @@ async def process_movie(movie_data: dict, generate_warnings: bool = False) -> Op
             vote_count=details.get('vote_count', 0),
             release_date=release_date,
             synopsis=details.get('overview', ''),
-            ott_platforms=providers,  # May be empty - that's OK
+            ott_platforms=providers,
             poster_url=f"{TMDB_IMAGE_BASE}{details['poster_path']}" if details.get('poster_path') else None,
             backdrop_url=f"{TMDB_IMAGE_BASE}{details['backdrop_path']}" if details.get('backdrop_path') else None,
             runtime=details.get('runtime'),

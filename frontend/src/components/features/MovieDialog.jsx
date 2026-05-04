@@ -9,18 +9,38 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { openOTTApp } from "@/utils/ottLinks";
 
 const OTT_COLORS = {
     'Netflix': 'bg-red-600',
     'Prime Video': 'bg-blue-600',
+    'Disney+': 'bg-indigo-600',
     'Disney+ Hotstar': 'bg-indigo-600',
+    'JioHotstar': 'bg-indigo-600',
     'Jio Cinema': 'bg-purple-600',
     'Zee5': 'bg-orange-600',
     'SonyLIV': 'bg-green-600',
     'Voot': 'bg-yellow-600',
     'MX Player': 'bg-cyan-600',
     'Aha': 'bg-pink-600',
-    'Sun NXT': 'bg-amber-600'
+    'Sun NXT': 'bg-amber-600',
+    'VI Movies': 'bg-red-800',
+    'ManoramaMAX': 'bg-emerald-700',
+    // Global platforms
+    'Hulu': 'bg-green-500',
+    'Max': 'bg-purple-700',
+    'Apple TV+': 'bg-gray-800',
+    'Apple TV': 'bg-gray-700',
+    'YouTube Movies': 'bg-red-700',
+    'Google Play Movies': 'bg-blue-700',
+    'Paramount+': 'bg-blue-500',
+    'Peacock': 'bg-yellow-400',
+    'Crunchyroll': 'bg-orange-500',
+    'MUBI': 'bg-yellow-600',
+    'Criterion Channel': 'bg-gray-900',
+    'Tubi': 'bg-orange-600',
+    'Pluto TV': 'bg-yellow-500',
+    'Viki': 'bg-pink-500'
 };
 
 export const MovieDialog = ({ movie, onClose }) => {
@@ -179,16 +199,58 @@ export const MovieDialog = ({ movie, onClose }) => {
                                 {/* Streaming Platforms */}
                                 <div>
                                     <h3 className="font-semibold text-lg mb-3">Available On</h3>
-                                    <div className="flex flex-wrap gap-3">
-                                        {movie.ott_platforms.map((platform, idx) => (
-                                            <div
-                                                key={idx}
-                                                className={`${OTT_COLORS[platform] || 'bg-gray-600'} text-white px-4 py-2 rounded-lg font-semibold shadow-lg`}
-                                            >
-                                                {platform}
+                                    {movie.ott_platforms && movie.ott_platforms.length > 0 ? (
+                                        <>
+                                            <div className="flex flex-wrap gap-3">
+                                                {movie.ott_platforms.map((platform, idx) => {
+                                                    const platformName = platform.name || platform;
+                                                    const countries = platform.countries || [];
+                                                    const platLang = platform.language || movie.language;
+                                                    const cleanName = platformName.replace(' (Rent)', '');
+                                                    const isIndia = countries.length === 0;
+                                                    
+                                                    let tooltip = isIndia
+                                                        ? `🇮🇳 India • Original: ${platLang}`
+                                                        : `🌍 ${countries.slice(0,5).join(', ')}${countries.length>5?'...':''}`;
+                                                    
+                                                    return (
+                                                        <div key={idx} className="flex flex-col items-center">
+                                                            <button
+                                                                onClick={(e) => openOTTApp(cleanName, movie.title, e)}
+                                                                className={`${OTT_COLORS[cleanName] || 'bg-gray-600'} text-white px-4 py-2 rounded-lg font-semibold shadow-lg hover:scale-105 hover:shadow-xl transition-all cursor-pointer`}
+                                                                title={tooltip}
+                                                            >
+                                                                {platformName}
+                                                            </button>
+                                                            {countries.length > 0 && (
+                                                                <span className="text-[10px] text-gray-500 mt-1 text-center max-w-[100px] truncate" title={countries.join(', ')}>
+                                                                    {countries.slice(0, 3).join(', ')}{countries.length > 3 ? '...' : ''}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                        ))}
-                                    </div>
+                                            {movie.ott_platforms.some(p => {
+                                                const lang = p.language || movie.language;
+                                                return !p.countries?.length && lang !== 'English' && lang !== 'Hindi';
+                                            }) && (
+                                                <p className="text-xs text-amber-600 mt-2 flex items-center gap-1">
+                                                    ⚠️ This is a {movie.language} film — OTT platforms may only offer dubbed versions. Verify language before subscribing.
+                                                </p>
+                                            )}
+                                        </>
+                                    ) : (() => {
+                                        const isUpcoming = movie.release_date && new Date(movie.release_date) > new Date();
+                                        return (
+                                            <p className={`italic ${isUpcoming ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                {isUpcoming
+                                                    ? `Coming ${new Date(movie.release_date).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'})} — streaming availability after release`
+                                                    : 'Not currently available on streaming platforms in your region'
+                                                }
+                                            </p>
+                                        );
+                                    })()}
                                 </div>
                             </div>
                         </div>
