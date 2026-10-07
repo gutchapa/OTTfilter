@@ -1,0 +1,6 @@
+# Optional: semantic search with EmbeddingGemma (EMBEDDINGS_ENABLED=true)
+# pip install -r requirements.txt -r requirements-embeddings.txt
+sentence-transformers>=5.1.0
+transformers>=4.56.0
+torch
+numpy

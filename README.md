@@ -417,6 +417,27 @@ GET /api/options/all
 
 ---
 
+## 🧠 Semantic Search (EmbeddingGemma, optional)
+
+Off by default. When enabled, `/api/natural` reranks results by meaning (title, cast, genres, synopsis) and pulls in semantically similar cached movies that pass the same language/platform/rating/year filters. Typo-tolerant across languages, e.g. "feel-good village family comedy in tamil".
+
+```bash
+cd backend
+pip install -r requirements-embeddings.txt
+# accept the Gemma licence at huggingface.co/google/embeddinggemma-300m, then in .env:
+#   EMBEDDINGS_ENABLED=true
+#   HF_TOKEN=hf_...
+#   EMBEDDING_DIM=256        # 768 / 512 / 256 / 128
+#   SEMANTIC_WEIGHT=500      # similarity x weight added to popularity
+python embed_backfill.py     # embed already-cached movies (new ones embed on demand)
+```
+
+Vectors are stored in their own `movie_embeddings` collection; `movies` documents are never modified. Runs on CPU or Apple Silicon (MPS); budget ~1-1.5 GB RAM for model + PyTorch.
+
+**Rollback:** set `EMBEDDINGS_ENABLED=false` (instant), and optionally `python embed_backfill.py --drop`.
+
+---
+
 ## 🔐 Environment Variables
 
 ### Backend (.env)

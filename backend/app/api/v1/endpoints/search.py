@@ -5,6 +5,8 @@ from app.services.youtube import search_youtube_videos
 from app.services.tmdb import fetch_tmdb_data
 from app.services.movie_service import process_movie
 from app.services.utils import fuzzy_match_score, fuzzy_search_actor
+from app.services import embedding_service
+from app.core.config import get_settings
 from app.core.database import get_database
 import logging
 import asyncio
@@ -45,6 +47,9 @@ async def natural_language_search(query: NaturalLanguageQuery):
         # Year filtering
         if parsed.release_year:
             db_query['release_date'] = {'$regex': f"^{parsed.release_year}"}
+
+        # Hard filters only (no title/cast text match) - used for semantic candidates
+        hard_filter = dict(db_query)
 
         # Movie title search with fuzzy matching support
         if parsed.keywords and parsed.intent == "search_movie":
@@ -332,6 +337,15 @@ async def natural_language_search(query: NaturalLanguageQuery):
 
             # Re-sort by boosted popularity
             movies = sorted(movies, key=lambda x: x.get('popularity', 0), reverse=True)
+
+        # Semantic rerank (EmbeddingGemma) - no-op unless EMBEDDINGS_ENABLED
+        if embedding_service.is_enabled():
+            movies = await embedding_service.rerank(
+                db, query.query, movies, hard_filter,
+                weight=get_settings().SEMANTIC_WEIGHT,
+                # Actor searches keep their lead/supporting ordering semantics; don't pull in unrelated films
+                expand=not parsed.cast_name,
+            )
 
         # Limit final results
         movies = movies[:20]
