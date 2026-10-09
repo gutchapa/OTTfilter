@@ -338,6 +338,18 @@ async def natural_language_search(query: NaturalLanguageQuery):
             # Re-sort by boosted popularity
             movies = sorted(movies, key=lambda x: x.get('popularity', 0), reverse=True)
 
+        # Dedupe by tmdb_id - the TMDB fetch fallback can re-append movies that are
+        # already in the cached result list, which surfaced exact duplicate rows.
+        _seen_ids = set()
+        _deduped = []
+        for _m in movies:
+            _tid = _m.get("tmdb_id")
+            if _tid in _seen_ids:
+                continue
+            _seen_ids.add(_tid)
+            _deduped.append(_m)
+        movies = _deduped
+
         # Semantic rerank (EmbeddingGemma) - no-op unless EMBEDDINGS_ENABLED
         if embedding_service.is_enabled():
             movies = await embedding_service.rerank(
