@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llmbench"
+version = "0.1.0"
+description = "A small, readable benchmark harness for OpenAI-compatible LLM servers, with a simulated server for learning."
+requires-python = ">=3.10"
+dependencies = ["aiohttp>=3.9", "numpy>=1.24"]
+
+[project.optional-dependencies]
+plot = ["matplotlib>=3.7"]
+dev = ["pytest>=7", "matplotlib>=3.7"]
+
+[project.scripts]
+llmbench = "llmbench.cli:main"
+
+[tool.setuptools]
+packages = ["llmbench"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

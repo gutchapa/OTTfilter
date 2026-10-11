@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AI Infrastructure Field Guide</title>
+<style>
+  @page { size: A4; margin: 20mm 18mm 20mm 18mm; }
+  :root {
+    --ink: #1d1f24; --muted: #5b6070; --rule: #d9dce3; --accent: #2b5fd9;
+    --accent-soft: #eef3ff; --warn: #b4531a; --warn-soft: #fff4ec;
+    --ok: #1f7a4d; --ok-soft: #ecf8f1; --math-soft: #f5f2ff; --math: #5a3fc0;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: "Inter", "DejaVu Sans", sans-serif; color: var(--ink); background: #fff;
+         font-size: 10.6pt; line-height: 1.58; margin: 0; }
+  h1, h2, h3, h4 { font-family: "Inter Display", "Inter", sans-serif; line-height: 1.2; margin: 0; }
+  h2 { font-size: 22pt; font-weight: 700; margin-bottom: 4pt; letter-spacing: -0.01em; }
+  h3 { font-size: 13pt; font-weight: 650; margin: 18pt 0 6pt; }
+  h4 { font-size: 11pt; font-weight: 650; margin: 12pt 0 4pt; }
+  p { margin: 0 0 8pt; orphans: 3; widows: 3; }
+  h3, h4 { break-after: avoid; }
+  li { break-inside: avoid; }
+  ul, ol { margin: 0 0 8pt; padding-left: 18pt; }
+  li { margin-bottom: 3pt; }
+  code, .mono { font-family: "DejaVu Sans Mono", monospace; font-size: 9pt; background: #f3f4f7;
+                padding: 0 3pt; border-radius: 3pt; }
+  pre { font-family: "DejaVu Sans Mono", monospace; font-size: 8.6pt; line-height: 1.45;
+        background: #f6f7f9; border: 1px solid var(--rule); border-radius: 6pt; padding: 8pt 10pt;
+        white-space: pre-wrap; break-inside: avoid; margin: 6pt 0 10pt; }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  table { width: 100%; border-collapse: collapse; margin: 6pt 0 12pt; font-size: 9.4pt; break-inside: avoid; }
+  th, td { text-align: left; padding: 5pt 7pt; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-weight: 650; background: #f5f6f9; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+  .chapter { break-before: page; }
+  .kicker { font-size: 9pt; font-weight: 650; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 6pt; }
+  .lede { font-size: 12pt; color: var(--muted); margin: 6pt 0 14pt; line-height: 1.5; }
+  .meta { display: flex; gap: 14pt; font-size: 9pt; color: var(--muted); border-top: 1px solid var(--rule);
+          border-bottom: 1px solid var(--rule); padding: 5pt 0; margin-bottom: 14pt; }
+  .meta b { color: var(--ink); font-weight: 600; }
+
+  .box { border-radius: 6pt; padding: 9pt 12pt; margin: 8pt 0 12pt; break-inside: avoid; }
+  .box > .t { font-size: 8.5pt; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4pt; }
+  .box p:last-child, .box ul:last-child, .box ol:last-child { margin-bottom: 0; }
+  .myth { background: var(--warn-soft); border-left: 3pt solid var(--warn); }
+  .myth > .t { color: var(--warn); }
+  .math { background: var(--math-soft); border-left: 3pt solid var(--math); }
+  .math > .t { color: var(--math); }
+  .do { background: var(--ok-soft); border-left: 3pt solid var(--ok); }
+  .do > .t { color: var(--ok); }
+  .note { background: var(--accent-soft); border-left: 3pt solid var(--accent); }
+  .note > .t { color: var(--accent); }
+
+  figure { margin: 8pt 0 14pt; break-inside: avoid; text-align: center; }
+  figcaption { font-size: 8.6pt; color: var(--muted); margin-top: 4pt; }
+
+  /* Cover */
+  .cover { height: 250mm; display: flex; flex-direction: column; justify-content: space-between; }
+  .cover h1 { font-size: 40pt; font-weight: 800; letter-spacing: -0.02em; line-height: 1.05; margin-top: 40mm; }
+  .cover .sub { font-size: 14pt; color: var(--muted); margin-top: 12pt; max-width: 140mm; line-height: 1.45; }
+  .cover .bar { height: 6pt; width: 60mm; background: var(--accent); border-radius: 3pt; margin-top: 18pt; }
+  .cover .foot { font-size: 9.5pt; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 8pt; }
+
+  .toc ol { list-style: none; padding: 0; }
+  .toc li { display: flex; gap: 10pt; padding: 5pt 0; border-bottom: 1px dotted var(--rule); margin: 0; }
+  .toc .n { width: 22pt; color: var(--accent); font-weight: 700; }
+  .toc .d { color: var(--muted); font-size: 9pt; margin-left: auto; text-align: right; max-width: 85mm; }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12pt; }
+  .small { font-size: 9pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="cover">
+  <div>
+    <div class="kicker">A casual-reading field guide</div>
+    <h1>AI Infrastructure<br>Engineering</h1>
+    <div class="bar"></div>
+    <p class="sub">The 12-stage roadmap, fact-checked and expanded: the physics behind each stage, the napkin math, the claims that are overstated, and practice projects that actually teach the right lesson.</p>
+  </div>
+  <div class="foot">Written for an experienced systems engineer. October 2026. Hardware numbers are vendor peak specs and are rounded; treat them as napkin-math inputs, not guarantees.</div>
+</section>
+
+<!-- ============ TOC ============ -->
+<section class="chapter toc">
+  <div class="kicker">Contents</div>
+  <h2>What's inside</h2>
+  <p class="lede">Read it front to back, or jump to a stage. Every stage follows the same shape: the idea, the napkin math, a myth check, a better practice project, and where to read more.</p>
+  <ol>
+    <li><span class="n">0</span>How to read this guide<span class="d">The one mental model that ties everything together</span></li>
+    <li><span class="n">1</span>Systems &amp; GPU foundations<span class="d">SMs, warps, memory hierarchy, interconnects</span></li>
+    <li><span class="n">2</span>Transformer inference physics<span class="d">Prefill vs decode, the roofline, KV-cache math</span></li>
+    <li><span class="n">3</span>Serving engines &amp; batching<span class="d">vLLM, SGLang, PagedAttention, chunked prefill</span></li>
+    <li><span class="n">4</span>KV-cache &amp; memory optimization<span class="d">Prefix caching, offload, cache-aware routing</span></li>
+    <li><span class="n">5</span>Quantization &amp; compression<span class="d">FP8, INT4, AWQ, GPTQ, and how to measure damage</span></li>
+    <li><span class="n">6</span>Kernel-level engineering<span class="d">Triton, FlashAttention, fusion, CUDA graphs</span></li>
+    <li><span class="n">7</span>Distributed inference &amp; parallelism<span class="d">TP, PP, EP and where each belongs</span></li>
+    <li><span class="n">8</span>Speculative decoding<span class="d">Draft models, EAGLE/Medusa, acceptance math</span></li>
+    <li><span class="n">9</span>Multi-node &amp; interconnects<span class="d">NCCL, RDMA, InfiniBand, disaggregated serving</span></li>
+    <li><span class="n">10</span>Cluster orchestration &amp; scheduling<span class="d">Kubernetes, Ray, Slurm, MIG, autoscaling</span></li>
+    <li><span class="n">11</span>Gateways, routing &amp; observability<span class="d">SLOs, semantic routing, DCGM, OpenTelemetry</span></li>
+    <li><span class="n">12</span>Public benchmarks &amp; teardowns<span class="d">Methodology that survives scrutiny</span></li>
+    <li><span class="n">13</span>Beyond the roadmap<span class="d">Multi-LoRA, structured output, non-NVIDIA, batch, reliability</span></li>
+    <li><span class="n">A</span>A compressed 6-month plan<span class="d">For someone with 20 years of systems experience</span></li>
+    <li><span class="n">B</span>Cheat sheets<span class="d">Hardware numbers, formulas, glossary, reading list</span></li>
+  </ol>
+</section>
+
+<!-- ============ CH 0 ============ -->
+<section class="chapter">
+  <div class="kicker">Chapter 0</div>
+  <h2>How to read this guide</h2>
+  <p class="lede">The original roadmap is a good list of topics. What it lacks is the thread that connects them. Here is that thread.</p>
+
+  <h3>The one idea: everything is a fight over bytes</h3>
+  <p>A GPU can do arithmetic far faster than it can fetch the numbers to do arithmetic on. An H100 can perform roughly 1,000 trillion BF16 multiply-adds-worth of FLOPs per second, but can only read about 3.35 TB per second from its main memory. Divide one by the other and you get roughly <b>300 FLOPs per byte</b>. Unless your workload does about 300 operations on every byte it loads, the compute units sit idle waiting for memory.</p>
+  <p>Almost every stage in this roadmap is a different answer to that single problem:</p>
+  <ul>
+    <li><b>Batching</b> (Stage 3) reuses each weight byte across many requests, raising the FLOPs-per-byte ratio.</li>
+    <li><b>KV-cache tricks</b> (Stage 4) avoid recomputing or re-reading bytes you already have.</li>
+    <li><b>Quantization</b> (Stage 5) makes each number fewer bytes.</li>
+    <li><b>Kernel fusion</b> (Stage 6) keeps intermediate results in fast on-chip memory instead of round-tripping to main memory.</li>
+    <li><b>Parallelism</b> (Stage 7) spreads the bytes over more GPUs, then pays a new tax: moving bytes between them.</li>
+    <li><b>Speculative decoding</b> (Stage 8) gets several tokens out of one pass over the weights.</li>
+    <li><b>Interconnects and disaggregation</b> (Stage 9) are about moving bytes between machines cheaply.</li>
+  </ul>
+  <p>Stages 10–12 are the business layer: keeping expensive hardware busy, routing work to the cheapest thing that meets the quality bar, and proving your numbers in public.</p>
+
+  <h3>The shape of each chapter</h3>
+  <div class="two">
+    <div class="box math"><div class="t">Napkin math</div><p>Back-of-envelope numbers you should be able to do in your head during a design review.</p></div>
+    <div class="box myth"><div class="t">Myth check</div><p>Where the original roadmap overstates, oversimplifies, or is simply wrong.</p></div>
+    <div class="box do"><div class="t">Practice, done right</div><p>The roadmap's exercise, corrected where needed, with what to measure and what "done" looks like.</p></div>
+    <div class="box note"><div class="t">Read more</div><p>The handful of papers, posts and docs worth your time. Not an exhaustive list.</p></div>
+  </div>
+
+  <h3>A word on the hype</h3>
+  <p>The original post opens with "you will never be unemployed again." Nobody can promise that, and it isn't needed to justify the field. The real case is simpler: inference cost is now the largest line item for anyone running models at scale, and the people who can cut it by 2–5x without hurting quality are scarce. That is a durable, well-paid skill, and it builds on exactly the systems intuition you already have.</p>
+</section>
+
+<!-- ============ CH 1 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 1</div>
+  <h2>Systems &amp; GPU foundations</h2>
+  <p class="lede">You can't reason about inference performance until you can picture where a byte lives and how long it takes to get to an arithmetic unit.</p>
+  <div class="meta"><span><b>Time:</b> 3–5 weeks</span><span><b>Hardware:</b> any NVIDIA GPU; one rented H100 for the final comparison</span><span><b>Languages:</b> C++, CUDA, Python</span></div>
+
+  <h3>The GPU as a CPU person should picture it</h3>
+  <p>A GPU is a collection of <b>Streaming Multiprocessors (SMs)</b>. An H100 SXM has 132 of them. Each SM is roughly a very wide, very simple core with its own register file and a small, fast scratchpad (shared memory). The SM runs threads in groups of 32 called <b>warps</b>. All 32 threads in a warp execute the same instruction at the same time (SIMT). If threads in a warp take different branches, the warp runs both paths with some threads masked off. That's <i>warp divergence</i>, and it's the GPU equivalent of a branch mispredict that never ends.</p>
+  <p>You write a kernel for one thread, then launch a <b>grid</b> of <b>thread blocks</b>. A block (up to 1,024 threads) is scheduled onto exactly one SM and stays there; its threads can share memory and synchronize. Blocks cannot talk to each other cheaply (Hopper's thread-block clusters loosen this a little).</p>
+  <p>The key trick is <b>latency hiding by oversubscription</b>. A CPU fights memory latency with big caches and out-of-order execution. A GPU instead keeps many warps resident per SM and switches between them every cycle at zero cost. When one warp stalls on a memory load, the scheduler issues from another. That's why <i>occupancy</i> (how many warps are resident) matters, and why it's limited by registers and shared memory per thread.</p>
+
+  <h3>The memory hierarchy</h3>
+  <figure>
+    <svg width="520" height="210" viewBox="0 0 520 210" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="11">
+      <polygon points="200,10 320,10 345,52 175,52" fill="#2b5fd9"/>
+      <text x="260" y="36" text-anchor="middle" fill="#fff" font-weight="600">Registers</text>
+      <polygon points="175,56 345,56 370,98 150,98" fill="#5079e0"/>
+      <text x="260" y="82" text-anchor="middle" fill="#fff" font-weight="600">Shared memory / L1</text>
+      <polygon points="150,102 370,102 395,144 125,144" fill="#7a99e8"/>
+      <text x="260" y="128" text-anchor="middle" fill="#fff" font-weight="600">L2 cache</text>
+      <polygon points="125,148 395,148 420,190 100,190" fill="#a9bdf1"/>
+      <text x="260" y="174" text-anchor="middle" fill="#1d1f24" font-weight="600">HBM (device memory)</text>
+      <g fill="#5b6070" font-size="10">
+        <text x="355" y="36">~256 KB per SM, ~1 cycle</text>
+        <text x="380" y="82">up to 228 KB per SM, ~30 cycles</text>
+        <text x="405" y="128">50 MB, ~200 cycles</text>
+        <text x="430" y="174">80 GB, 3.35 TB/s</text>
+        <text x="10" y="36">fastest</text>
+        <text x="10" y="174">biggest</text>
+      </g>
+    </svg>
+    <figcaption>H100 SXM memory hierarchy, approximate. Latencies are order-of-magnitude.</figcaption>
+  </figure>
+  <p>Two rules fall out of this picture and drive nearly every kernel you'll ever write:</p>
+  <ol>
+    <li><b>Coalesce your global memory accesses.</b> When the 32 threads of a warp read 32 consecutive 4-byte values, the hardware merges them into a few wide transactions. If they read scattered addresses, you pay for many transactions and use a fraction of each.</li>
+    <li><b>Reuse data from shared memory and registers.</b> Load a tile from HBM once, then let many threads use it many times from on-chip memory. This is the whole idea behind tiled matmul and FlashAttention.</li>
+  </ol>
+
+  <h3>Interconnects: PCIe vs NVLink</h3>
+  <table>
+    <tr><th>Link</th><th class="num">Bandwidth (approx.)</th><th>Where it matters</th></tr>
+    <tr><td>HBM3 on H100</td><td class="num">3.35 TB/s</td><td>Every kernel</td></tr>
+    <tr><td>NVLink 4 (H100, per GPU)</td><td class="num">900 GB/s total</td><td>Tensor parallelism inside a node</td></tr>
+    <tr><td>PCIe Gen5 x16</td><td class="num">~64 GB/s each way</td><td>Host↔GPU copies, CPU KV offload, PCIe-only cards</td></tr>
+    <tr><td>InfiniBand NDR, per port</td><td class="num">400 Gb/s ≈ 50 GB/s</td><td>Between nodes (usually 8 ports per node)</td></tr>
+  </table>
+  <p>The gap between HBM and NVLink is ~4x. The gap between NVLink and a single InfiniBand port is ~18x. Keep those ratios in your head; they decide how you shard models in Stage 7.</p>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Learn C++ <i>and</i> Rust."</b> Rust is a fine language and shows up in some serving infrastructure (routers, tokenizers, gateways), but it's not on the critical path for GPU work. The kernel path is C++ → CUDA → Triton. Learn Rust later if a job needs it.</p>
+    <p><b>"You must understand the silicon."</b> Partly true. You need a working model of SMs, warps, the memory hierarchy and tensor cores. You don't need to know transistor-level details or memorize the ISA.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <p><b>Write SGEMM from scratch and climb the ladder against cuBLAS.</b> This is the classic exercise and the roadmap got it right. Do it in steps and measure each one:</p>
+    <ol>
+      <li>Naive kernel: one thread per output element.</li>
+      <li>Fix coalescing (just change the index mapping; expect a big jump).</li>
+      <li>Shared-memory tiling.</li>
+      <li>Register tiling: each thread computes a small block of outputs (1D, then 2D).</li>
+      <li>Vectorized loads (<code>float4</code>), then warp-level tiling.</li>
+      <li>Stretch goal: use tensor cores (WMMA/MMA) in BF16 and compare against cuBLAS in BF16.</li>
+    </ol>
+    <p><b>Measure</b> achieved GFLOP/s and % of cuBLAS at 4096×4096. Use <code>ncu</code> (Nsight Compute) to check memory throughput, occupancy and warp stall reasons at each step. <b>Done</b> means 70–90% of cuBLAS for FP32 and that you can explain, with profiler evidence, what each step fixed.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Simon Boehm, <i>How to Optimize a CUDA Matmul Kernel for cuBLAS-like Performance</i>. The step-by-step version of the exercise above.</li>
+      <li>Hwu, Kirk &amp; El Hajj, <i>Programming Massively Parallel Processors</i> (4th ed.). The textbook.</li>
+      <li>GPU MODE lecture series and Discord. The best free community for this material.</li>
+      <li>NVIDIA CUDA C++ Programming Guide and Best Practices Guide.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 2 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 2</div>
+  <h2>Transformer inference physics</h2>
+  <p class="lede">The most important chapter. If you understand this one, the rest of the roadmap is engineering.</p>
+  <div class="meta"><span><b>Time:</b> 2–3 weeks</span><span><b>Hardware:</b> one GPU that fits an 8B model</span><span><b>Tools:</b> Nsight Systems, PyTorch profiler</span></div>
+
+  <h3>Two phases with opposite personalities</h3>
+  <p>Generating a response happens in two phases:</p>
+  <ul>
+    <li><b>Prefill:</b> the model processes the whole prompt at once. With 2,000 prompt tokens, every weight matrix is multiplied by a 2,000-row matrix. That's a real matrix-matrix multiply with lots of reuse per weight byte. <b>Prefill is compute-bound.</b> It determines Time To First Token (TTFT).</li>
+    <li><b>Decode:</b> the model generates one token at a time. For each new token, every weight is read from HBM to multiply it by a single vector. Almost no reuse. <b>Decode at small batch sizes is memory-bandwidth-bound.</b> It determines the time between tokens (Inter-Token Latency, ITL, also called TPOT).</li>
+  </ul>
+  <figure>
+    <svg width="520" height="120" viewBox="0 0 520 120" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="10.5">
+      <rect x="10" y="30" width="170" height="34" rx="4" fill="#2b5fd9"/>
+      <text x="95" y="51" text-anchor="middle" fill="#fff" font-weight="600">Prefill (all prompt tokens)</text>
+      <g fill="#a9bdf1">
+        <rect x="186" y="30" width="26" height="34" rx="3"/><rect x="216" y="30" width="26" height="34" rx="3"/>
+        <rect x="246" y="30" width="26" height="34" rx="3"/><rect x="276" y="30" width="26" height="34" rx="3"/>
+        <rect x="306" y="30" width="26" height="34" rx="3"/><rect x="336" y="30" width="26" height="34" rx="3"/>
+        <rect x="366" y="30" width="26" height="34" rx="3"/><rect x="396" y="30" width="26" height="34" rx="3"/>
+      </g>
+      <text x="304" y="22" text-anchor="middle" fill="#5b6070">Decode: one token per step</text>
+      <line x1="10" y1="80" x2="180" y2="80" stroke="#1d1f24"/><text x="95" y="96" text-anchor="middle" fill="#1d1f24">TTFT: compute-bound</text>
+      <line x1="186" y1="80" x2="212" y2="80" stroke="#1d1f24"/><text x="199" y="112" text-anchor="middle" fill="#1d1f24">ITL</text>
+      <text x="440" y="51" fill="#5b6070">… until EOS</text>
+    </svg>
+    <figcaption>One request's timeline. Prefill is one big pass; decode is many small passes that each re-read all the weights.</figcaption>
+  </figure>
+
+  <h3>Arithmetic intensity and the roofline</h3>
+  <p><b>Arithmetic intensity</b> = FLOPs performed ÷ bytes moved from memory. The <b>roofline model</b> says your achievable throughput is the lower of two ceilings: peak compute, or memory bandwidth × arithmetic intensity. The crossover point, the <i>ridge point</i>, is peak FLOPs ÷ bandwidth. For an H100 in BF16 that's about 989 TFLOP/s ÷ 3.35 TB/s ≈ <b>295 FLOPs/byte</b>.</p>
+  <figure>
+    <svg width="460" height="200" viewBox="0 0 460 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter, sans-serif" font-size="10.5">
+      <line x1="50" y1="170" x2="440" y2="170" stroke="#1d1f24"/>
+      <line x1="50" y1="170" x2="50" y2="15" stroke="#1d1f24"/>
+      <polyline points="50,165 240,45 440,45" fill="none" stroke="#2b5fd9" stroke-width="3"/>
+      <line x1="240" y1="45" x2="240" y2="170" stroke="#5b6070" stroke-dasharray="4 3"/>
+      <text x="240" y="185" text-anchor="middle" fill="#5b6070">ridge ≈ 295 FLOPs/byte</text>
+      <text x="340" y="38" text-anchor="middle" fill="#2b5fd9" font-weight="600">compute roof</text>
+      <text x="120" y="105" fill="#2b5fd9" font-weight="600" transform="rotate(-32 120 105)">memory roof</text>
+      <circle cx="75" cy="150" r="5" fill="#b4531a"/><text x="84" y="146" fill="#b4531a">decode, batch 1</text>
+      <circle cx="175" cy="86" r="5" fill="#b4531a"/><text x="184" y="90" fill="#b4531a">decode, batch 64</text>
+      <circle cx="350" cy="45" r="5" fill="#1f7a4d"/><text x="350" y="62" text-anchor="middle" fill="#1f7a4d">prefill, 2K tokens</text>
+      <text x="245" y="198" text-anchor="middle" fill="#1d1f24" font-size="9.5">arithmetic intensity (log scale) →</text>
+      <text x="16" y="95" fill="#1d1f24" font-size="9.5" transform="rotate(-90 16 95)">achieved FLOP/s →</text>
+    </svg>
+    <figcaption>Roofline for an H100 (BF16). Decode climbs the slope as batch size grows; prefill sits on the flat roof.</figcaption>
+  </figure>
+
+  <div class="box math"><div class="t">Napkin math: decode intensity ≈ batch size</div>
+    <p>A weight matrix of BF16 values costs 2 bytes per weight to read. For each request in the batch, each weight does one multiply and one add: 2 FLOPs. So with batch size <i>B</i>, intensity ≈ 2<i>B</i> ÷ 2 = <b><i>B</i> FLOPs/byte</b>.</p>
+    <p>Batch 1 → intensity 1. You're using about 0.3% of the H100's compute. To reach the ridge you'd need a batch of ~300 sequences, and before you get there you usually run out of KV-cache memory or blow your latency SLO. That's why decode is "mostly memory-bound" in practice.</p>
+  </div>
+
+  <div class="box math"><div class="t">Napkin math: the decode speed limit</div>
+    <p>At batch 1, every token requires reading every weight once. So:</p>
+    <p style="text-align:center"><b>max tokens/s ≈ memory bandwidth ÷ model size in bytes</b></p>
+    <p>Llama 3 8B in BF16 is ~16 GB. On an H100: 3.35 TB/s ÷ 16 GB ≈ <b>210 tokens/s</b> upper bound. Real systems get maybe 60–80% of that. If someone claims 500 tok/s single-stream on an H100 for an unquantized 8B model without speculative decoding, something is off.</p>
+  </div>
+
+  <h3>KV-cache math</h3>
+  <p>Attention needs the Key and Value vectors of every previous token. Recomputing them each step would be quadratic, so we cache them. The cost:</p>
+  <pre><code>KV bytes per token = 2 (K and V) × layers × kv_heads × head_dim × bytes_per_value</code></pre>
+  <table>
+    <tr><th>Model (BF16)</th><th>Layers</th><th>KV heads</th><th>head_dim</th><th class="num">Per token</th><th class="num">128K-token sequence</th></tr>
+    <tr><td>Llama 3 8B</td><td>32</td><td>8</td><td>128</td><td class="num">128 KB</td><td class="num">~16 GB</td></tr>
+    <tr><td>Llama 3 70B</td><td>80</td><td>8</td><td>128</td><td class="num">320 KB</td><td class="num">~40 GB</td></tr>
+  </table>
+  <p>Note the "KV heads = 8". These models use <b>Grouped-Query Attention (GQA)</b>: 64 query heads share 8 KV heads. Without GQA the 70B model would need 8x more KV memory. Architectures like DeepSeek's Multi-head Latent Attention (MLA) compress it further. <b>Model architecture is a serving decision.</b></p>
+  <p>The KV cache also means decode is <i>doubly</i> memory-bound: each step reads the weights <i>and</i> the whole KV cache of every sequence in the batch. At long contexts, KV reads can exceed weight reads. That's why attention kernels and KV compression matter so much.</p>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"LLM inference is almost always memory-bound, not compute-bound."</b> True for decode at small to moderate batch sizes, and that's where most latency-sensitive serving lives. But prefill is compute-bound, large-batch decode moves toward compute-bound for the weight GEMMs, and real servers mix both phases in the same batch. The skill isn't memorizing "memory-bound." It's being able to place any given workload on the roofline.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <p>Load Llama 3.1 8B (or similar) in HuggingFace Transformers. Profile with <code>nsys profile</code>:</p>
+    <ol>
+      <li>Run one 2,000-token prefill and 200 decode steps at batch 1. In the timeline, find the GEMMs. Prefill GEMMs should be long and few; decode should be hundreds of tiny kernels with gaps between them (that's Python and launch overhead, a preview of Stage 6).</li>
+      <li>For one decode step, compute achieved bandwidth: bytes read (weights + KV) ÷ step time. Compare to 3.35 TB/s.</li>
+      <li>Repeat decode at batch 1, 8, 32, 128. Plot tokens/s and per-step latency against batch size. You should see throughput rise nearly linearly while latency stays flat, then bend. That bend is the roofline in your own data.</li>
+    </ol>
+    <p><b>Done</b> means you can predict step latency within ~30% from napkin math before running.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Horace He, <i>Making Deep Learning Go Brrrr From First Principles</i>. Compute vs memory vs overhead, beautifully explained.</li>
+      <li>Google DeepMind, <i>How to Scale Your Model</i> (the "scaling book"). Rooflines, sharding and inference math. Written with TPUs in mind but the ideas carry over directly.</li>
+      <li>Kipply, <i>Transformer Inference Arithmetic</i>. The classic napkin-math post.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 3 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 3</div>
+  <h2>Modern serving engines &amp; batching</h2>
+  <p class="lede">Batching is how you climb the roofline. Serving engines exist to batch aggressively without wasting memory or wrecking latency.</p>
+  <div class="meta"><span><b>Time:</b> 3–4 weeks</span><span><b>Hardware:</b> 1 GPU for 8B; 2×H100 or more for 70B</span><span><b>Software:</b> vLLM, SGLang</span></div>
+
+  <h3>From static to continuous batching</h3>
+  <p><b>Static batching</b> collects N requests, runs them together, and waits for the longest one to finish before starting the next batch. Short requests sit idle, and new arrivals wait. <b>Continuous batching</b> (introduced by the Orca paper as "iteration-level scheduling") reschedules every decode step: finished sequences leave, new ones join immediately. This alone typically raises throughput several-fold on realistic traffic.</p>
+
+  <h3>PagedAttention: virtual memory for the KV cache</h3>
+  <p>Early servers reserved a contiguous KV buffer per request sized for its maximum possible length. Most requests never use that much, and the leftover gaps fragment memory. The vLLM paper measured that existing systems wasted <b>60–80% of KV-cache memory</b> this way.</p>
+  <p><b>PagedAttention</b> borrows the OS idea of paging. The KV cache is split into fixed-size blocks (16 tokens per block by default in vLLM). Each sequence has a block table mapping logical positions to physical blocks, allocated on demand. Waste drops to under 4% (only the last partial block). Bonus: blocks can be shared between sequences copy-on-write, which makes parallel sampling and prefix sharing almost free.</p>
+  <p>As an OS-literate engineer, you'll find this chapter comfortable: it's a page table, a free list, and an eviction policy.</p>
+
+  <h3>SGLang and RadixAttention</h3>
+  <p>SGLang keeps the KV cache in a <b>radix tree</b> keyed by token sequences. Any new request that shares a prefix with something in the tree (a system prompt, few-shot examples, earlier turns of a chat) reuses those KV blocks automatically, with LRU eviction. vLLM has equivalent automatic prefix caching (hash-based blocks). In 2026 the two engines are close on most workloads; differences show up on specific patterns (structured output, heavy prefix sharing, specific models and kernels). That's why you benchmark (Stage 12).</p>
+
+  <h3>Chunked prefill: protecting decode from long prompts</h3>
+  <p>A 32K-token prefill can take hundreds of milliseconds. If the scheduler runs it as one step, every decoding request in the batch stalls for that long, and your ITL p99 spikes. <b>Chunked prefill</b> (from the Sarathi-Serve work) splits the long prefill into chunks, e.g. 512–2,048 tokens, and mixes one chunk into each step alongside the ongoing decodes. Decode keeps flowing; the long prompt finishes a bit later.</p>
+  <p>The tuning knob is the token budget per step (in vLLM, <code>max_num_batched_tokens</code>):</p>
+  <ul>
+    <li><b>Smaller budget</b> → smoother ITL for everyone, slower TTFT for long prompts, slightly lower peak throughput.</li>
+    <li><b>Larger budget</b> → better prefill efficiency and TTFT, worse ITL tail.</li>
+  </ul>
+
+  <div class="box math"><div class="t">Napkin math: what fits on the GPU</div>
+    <p>Llama 3 70B in BF16 = ~140 GB of weights. That needs at least 2×H100 (160 GB), which leaves only ~10–15 GB for KV cache after activations and overhead: about 30K–45K tokens total across <i>all</i> concurrent requests at 320 KB/token. That's barely one long-context user. In practice you run 70B on 4× or 8×H100, or quantize to FP8 (Stage 5) so it fits comfortably on 2.</p>
+  </div>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Naive batching leaves 60% of GPU VRAM wasted."</b> The real figure is 60–80% of <b>KV-cache</b> memory wasted by contiguous pre-allocation, not 60% of total VRAM. Still a big deal; just be precise in interviews. Engineers who quote the exact claim get more trust.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <p><b>Deploy a 70B model and tune chunked prefill against an SLO.</b></p>
+    <ol>
+      <li>Serve Llama 3.x 70B on 4×H100 with tensor parallelism 4 (or FP8 on 2×H100).</li>
+      <li>Build a mixed workload: 80% chat requests (~1K in / 300 out) plus 20% long-context requests (16K–32K in). Use Poisson arrivals, not a fixed concurrency.</li>
+      <li>Set an SLO up front, for example: TTFT p95 &lt; 2 s, ITL p99 &lt; 80 ms.</li>
+      <li>Sweep <code>max_num_batched_tokens</code> (512, 1K, 2K, 4K, 8K) and request rate. For each setting, find the maximum request rate that still meets the SLO ("goodput").</li>
+    </ol>
+    <p><b>Done</b> means a plot of goodput vs chunk budget, with a one-paragraph explanation of why the best setting wins.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Kwon et al., <i>Efficient Memory Management for LLM Serving with PagedAttention</i> (SOSP 2023), the vLLM paper.</li>
+      <li>Yu et al., <i>Orca</i> (OSDI 2022), continuous batching.</li>
+      <li>Agrawal et al., <i>Sarathi-Serve</i> (OSDI 2024), chunked prefill.</li>
+      <li>Zheng et al., <i>SGLang</i> (RadixAttention).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 4 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 4</div>
+  <h2>KV-cache &amp; memory optimization</h2>
+  <p class="lede">The cheapest token is the one you don't have to recompute. This stage is about treating the KV cache as a first-class, tiered, shareable resource.</p>
+  <div class="meta"><span><b>Time:</b> 2–3 weeks</span><span><b>Hardware:</b> 2+ GPU replicas (can be small models)</span><span><b>Software:</b> vLLM/SGLang, a proxy you write, LMCache</span></div>
+
+  <h3>The four levers</h3>
+  <h4>1. Prefix caching</h4>
+  <p>If two requests start with the same 4,000-token system prompt, the KV for those tokens is identical. Compute it once, reuse it. The second request skips that part of prefill, so its TTFT drops by roughly the share of the prompt that's cached. Both vLLM and SGLang do this automatically within one replica.</p>
+  <h4>2. Multi-turn reuse</h4>
+  <p>In chat, turn N's prompt is turn N−1's prompt plus the response plus a new message. If the KV for turn N−1 is still in cache, you only prefill the new part. Without reuse, a 20-turn conversation re-prefills the entire history 20 times.</p>
+  <h4>3. KV quantization</h4>
+  <p>Store K and V in FP8 instead of BF16: half the memory, so roughly twice the tokens in cache and twice the concurrent sequences. It also halves KV read bandwidth during decode. Quality impact is usually small but must be checked, especially on long contexts.</p>
+  <h4>4. Tiered offload</h4>
+  <p>When GPU memory fills, evicted KV blocks can go to CPU RAM (or local NVMe, or a shared store) instead of being thrown away. Reloading over PCIe Gen5 (~64 GB/s) is usually much faster than recomputing a long prefix. LMCache and NVIDIA Dynamo's KV block manager implement this; Mooncake (from Moonshot AI) built a whole architecture around a distributed KV store.</p>
+
+  <div class="box math"><div class="t">Napkin math: reload vs recompute</div>
+    <p>A 32K-token prefix on Llama 3 70B = 32K × 320 KB ≈ 10 GB of KV. Over PCIe Gen5 at ~50 GB/s effective: ~0.2 s. Recomputing that prefill on 4×H100 takes roughly 1–3 s depending on the stack. Reload wins by an order of magnitude. For a 500-token prefix it's a wash, and you shouldn't bother.</p>
+  </div>
+
+  <h3>The routing problem</h3>
+  <p>Prefix caching works per replica. With 8 replicas behind a round-robin load balancer, a given system prompt lands on a random replica, so your cache hit rate drops to roughly 1/8 of what it could be. The fix is <b>cache-aware routing</b>: send requests that share a prefix to the same replica.</p>
+  <p>But pure affinity creates hotspots: one popular system prompt can overload a single replica. Good routers balance two signals: <b>expected cache hit</b> (prefix match length) and <b>load</b> (queue depth, KV usage). A common approach is consistent hashing on a prefix hash, with spillover when a replica's load exceeds a threshold.</p>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Reused cache can slash TTFT by 80%."</b> On the right workload, yes, and sometimes more: long shared system prompts, RAG over a fixed document set, agents re-sending long histories. For workloads with unique prompts, the gain is close to zero. Always state the hit rate and the cached share of the prompt alongside the TTFT claim.</p>
+    <p><b>"Build a routing proxy."</b> Good exercise, but know the prior art: the SGLang router, the vLLM production-stack router, llm-d's inference scheduler, and NVIDIA Dynamo's KV-aware router all do this. Benchmark your router against one of them.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <ol>
+      <li>Run 4 replicas of a small model (an 8B on 4 GPUs, or even a 1B on fewer).</li>
+      <li>Generate traffic with ~20 distinct system prompts (2K–4K tokens each), with Zipf-distributed popularity, plus short unique user messages.</li>
+      <li>Implement three routing policies in a small proxy: round-robin, pure prefix-hash affinity, and prefix-hash with load-based spillover.</li>
+      <li>Measure prefix cache hit rate (both engines expose it as a metric), TTFT p50/p95, and per-replica load imbalance.</li>
+    </ol>
+    <p><b>Done</b> means you can show that pure affinity beats round-robin on TTFT but loses on p99 under skew, and that the spillover version gets the best of both.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>vLLM docs: Automatic Prefix Caching. SGLang docs: RadixAttention and the router.</li>
+      <li>LMCache project. Mooncake paper (KVCache-centric disaggregated architecture).</li>
+      <li>llm-d and NVIDIA Dynamo documentation on KV-aware routing.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 5 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 5</div>
+  <h2>Quantization &amp; compression</h2>
+  <p class="lede">Fewer bytes per weight means faster decode, more room for KV cache, and smaller hardware bills. The catch is quality, and measuring it honestly is the hard part.</p>
+  <div class="meta"><span><b>Time:</b> 2–3 weeks</span><span><b>Hardware:</b> Hopper or newer for native FP8</span><span><b>Software:</b> llm-compressor, TensorRT Model Optimizer, lm-evaluation-harness</span></div>
+
+  <h3>The menu</h3>
+  <table>
+    <tr><th>Format</th><th>What gets quantized</th><th>Typical quality cost</th><th>Notes</th></tr>
+    <tr><td><b>FP8 (W8A8)</b></td><td>Weights and activations</td><td>Usually near-lossless</td><td>Native tensor-core support on Hopper/Blackwell. The default first step for production.</td></tr>
+    <tr><td><b>INT8 W8A8</b> (SmoothQuant)</td><td>Weights and activations</td><td>Small</td><td>Good on Ampere, which lacks FP8. Needs outlier handling.</td></tr>
+    <tr><td><b>INT4 weight-only</b> (AWQ, GPTQ)</td><td>Weights only (W4A16)</td><td>Small to noticeable</td><td>Great for memory-bound decode at small batch sizes. Activations stay 16-bit.</td></tr>
+    <tr><td><b>FP4</b> (NVFP4, MXFP4)</td><td>Weights, optionally activations</td><td>Varies; needs care</td><td>Native on Blackwell. Becoming common for frontier models in 2026.</td></tr>
+    <tr><td><b>2:4 sparsity</b></td><td>Half of weights zeroed in a fixed pattern</td><td>Needs fine-tuning to recover</td><td>Hardware-supported but less widely used than quantization.</td></tr>
+  </table>
+
+  <h3>How the main methods differ</h3>
+  <ul>
+    <li><b>GPTQ</b> quantizes weights one column at a time and adjusts the remaining columns to compensate for the error, using second-order (Hessian) information from a small calibration set.</li>
+    <li><b>AWQ</b> (Activation-aware Weight Quantization) observes that a small fraction of weight channels matter most, the ones that see large activations. It scales those channels up before quantizing so they keep more precision.</li>
+    <li><b>SmoothQuant</b> moves the difficulty of quantizing activations (which have outliers) into the weights (which are easy to quantize) with a mathematically equivalent per-channel scaling.</li>
+    <li><b>Calibration</b> (as in TensorRT-LLM / ModelOpt) means running representative data through the model to choose scaling factors. Calibration data that doesn't match your traffic is a classic source of silent quality loss.</li>
+  </ul>
+
+  <div class="box math"><div class="t">Napkin math: what quantization buys</div>
+    <table>
+      <tr><th>Llama 3 70B</th><th class="num">Weights</th><th class="num">Min. H100s</th><th class="num">Decode limit, batch 1, 1×H100-equivalent bandwidth</th></tr>
+      <tr><td>BF16</td><td class="num">140 GB</td><td class="num">2</td><td class="num">~24 tok/s</td></tr>
+      <tr><td>FP8</td><td class="num">70 GB</td><td class="num">1 (tight)</td><td class="num">~48 tok/s</td></tr>
+      <tr><td>INT4 (W4A16)</td><td class="num">~38 GB</td><td class="num">1</td><td class="num">~88 tok/s</td></tr>
+    </table>
+    <p>The last column is just 3.35 TB/s ÷ weight bytes. Halving bytes roughly doubles the memory-bound decode ceiling. At high batch sizes, the gain from weight-only INT4 shrinks, because the workload becomes compute-bound and the 16-bit activations still do 16-bit math.</p>
+  </div>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Benchmark the perplexity drop."</b> Perplexity is a fine smoke test but a weak quality signal. Quantized models can keep perplexity within 1% while losing several points on math, code or long-context retrieval. Use task evals: GSM8K or MATH for reasoning, HumanEval-style for code, a long-context retrieval test (e.g. RULER or needle-in-a-haystack), and most important, <b>your own golden set</b> from real traffic, scored against the BF16 model's outputs.</p>
+    <p><b>"Quantization is the only way to fit frontier models on edge GPUs."</b> It's the main way, alongside distillation into smaller models and pruning. "Only" is too strong.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <ol>
+      <li>Take an 8B model. Produce FP8 (dynamic or calibrated), AWQ INT4 and GPTQ INT4 versions with llm-compressor or ModelOpt.</li>
+      <li>Serve each in vLLM. Measure memory, max KV capacity, single-stream tokens/s, and throughput at a fixed latency SLO.</li>
+      <li>Evaluate with lm-evaluation-harness on 3–4 tasks, plus a 200-prompt golden set compared against BF16 outputs (exact match or an LLM judge).</li>
+      <li>Try a deliberately mismatched calibration set (e.g. calibrate on Wikipedia, evaluate on code) and see what happens.</li>
+    </ol>
+    <p><b>Done</b> means a table of latency, throughput, memory and quality for each variant, and a recommendation you'd defend.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Frantar et al., <i>GPTQ</i>. Lin et al., <i>AWQ</i>. Xiao et al., <i>SmoothQuant</i>.</li>
+      <li>Micikevicius et al., <i>FP8 Formats for Deep Learning</i>.</li>
+      <li>vLLM's llm-compressor docs; NVIDIA TensorRT Model Optimizer docs.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 6 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 6</div>
+  <h2>Kernel-level engineering</h2>
+  <p class="lede">Where you stop using the framework's kernels and start writing your own. Triton makes this accessible; FlashAttention shows what's possible.</p>
+  <div class="meta"><span><b>Time:</b> 3–4 weeks</span><span><b>Hardware:</b> one modern GPU</span><span><b>Software:</b> Triton, PyTorch, Nsight Compute</span></div>
+
+  <h3>Why fusion matters</h3>
+  <p>Consider RMSNorm in plain PyTorch: square, mean, add epsilon, rsqrt, multiply, multiply by weight. Each operation is a separate kernel that reads its input from HBM and writes its output back. That's 5–6 full round trips through memory for an operation that only needs one read and one write. Every one of those ops is memory-bound with tiny arithmetic intensity. <b>Fusing</b> them into one kernel keeps intermediates in registers and can be 3–6x faster for this op.</p>
+
+  <h3>Triton in one paragraph</h3>
+  <p>Triton is a Python-embedded language where you write kernels at the level of <i>blocks</i> of data rather than individual threads. You say "load this block of 1,024 elements, compute, store," and the compiler handles thread mapping, memory coalescing, and shared memory. You give up some control compared to CUDA, and get 80–100% of hand-tuned performance for most memory-bound ops in a fraction of the code. <code>torch.compile</code> generates Triton kernels under the hood, so reading its output is a great way to learn.</p>
+
+  <h3>FlashAttention: fusion applied to attention</h3>
+  <p>Naive attention computes the full N×N score matrix, writes it to HBM, applies softmax, writes again, then multiplies by V. At long sequence lengths that matrix is enormous. <b>FlashAttention</b> tiles Q, K and V into blocks that fit in shared memory, and uses the <i>online softmax</i> trick (keeping a running max and running sum) so it never materializes the full matrix. Same exact result, far less memory traffic. FlashAttention-2 improved work partitioning; FlashAttention-3 uses Hopper-specific features (asynchronous TMA copies, warp specialization, FP8). For decode, specialized kernels (FlashDecoding, FlashInfer) split the KV sequence across blocks so a single query can use the whole GPU.</p>
+
+  <h3>CUDA graphs: killing launch overhead</h3>
+  <p>A decode step for an 8B model can launch hundreds of small kernels. Each launch has CPU-side overhead of a few microseconds, and Python adds more. When the GPU work per kernel is also only a few microseconds, the GPU sits idle between launches (you saw these gaps in Stage 2's Nsight trace). <b>CUDA graphs</b> record the whole sequence of launches once and replay it with a single call. Serving engines capture graphs for a set of batch sizes and pad to the nearest one. That's the source of vLLM's startup "capturing CUDA graphs" phase.</p>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Python overhead kills inference."</b> At small batch sizes in eager PyTorch, yes, it dominates decode. In a production engine with CUDA graphs and fused kernels, Python is mostly off the hot path. The real lesson: measure where time goes (GPU busy vs gaps) before optimizing.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <ol>
+      <li>Write a fused RMSNorm forward kernel in Triton (one program per row, load, compute, normalize, scale, store).</li>
+      <li>Benchmark against eager PyTorch, <code>torch.compile</code>, and an existing fused version (Liger Kernel or the vLLM kernel) across hidden sizes 2K–16K and token counts 1–8K.</li>
+      <li>Report achieved memory bandwidth as a percentage of peak. A good memory-bound kernel reaches 80–90%.</li>
+      <li>Stretch: fuse the residual add into the same kernel (<code>x = x + residual; y = rmsnorm(x)</code>), which is what real engines do. Then write a Triton softmax and compare with the online-softmax variant.</li>
+    </ol>
+    <p><b>Done</b> means a bandwidth-vs-size plot and an explanation of where your kernel loses to the best one.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Official Triton tutorials (vector add → fused softmax → matmul → layer norm).</li>
+      <li>Dao et al., <i>FlashAttention</i> 1, 2 and 3 papers.</li>
+      <li>FlashInfer project and paper; Liger Kernel repository for production Triton examples.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 7 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 7</div>
+  <h2>Distributed inference &amp; parallelism</h2>
+  <p class="lede">When a model doesn't fit on one GPU, you split it. Each way of splitting trades memory for a different kind of communication.</p>
+  <div class="meta"><span><b>Time:</b> 2–3 weeks</span><span><b>Hardware:</b> one 8-GPU node; two nodes for the cross-node part</span><span><b>Software:</b> vLLM / SGLang / TensorRT-LLM</span></div>
+
+  <h3>The three main strategies</h3>
+  <h4>Tensor parallelism (TP)</h4>
+  <p>Split each weight matrix across GPUs. In the Megatron layout, the first MLP matrix is split by columns and the second by rows, so each GPU does its share and the results are combined with one <b>all-reduce</b>. Same for attention (split by heads). That's <b>two all-reduces per transformer layer, every forward pass</b>. TP cuts per-GPU memory and per-token latency, but it's chatty: it needs NVLink-class bandwidth and low latency. Keep TP <b>inside a node</b>.</p>
+  <h4>Pipeline parallelism (PP)</h4>
+  <p>Split the model by layers: GPUs 0–3 hold layers 1–40, GPUs 4–7 hold 41–80. Only activations cross the boundary, once per stage, so communication is light and tolerates slower links. The cost is pipeline bubbles and added latency per stage. PP is the natural way to <b>cross nodes</b>.</p>
+  <h4>Expert parallelism (EP)</h4>
+  <p>For Mixture-of-Experts models (DeepSeek-V3, Qwen3 MoE, Llama 4, and others), each token is routed to a few of many experts. EP places different experts on different GPUs, so each token's hidden state must be sent to wherever its experts live and back: an <b>all-to-all</b> communication pattern. Load imbalance between experts is the main headache. Large-scale EP across nodes (as in DeepSeek's published inference setup) is one of the most demanding workloads in the field.</p>
+  <p>There's also <b>data parallelism</b> (whole replicas) and, for long contexts, <b>context/sequence parallelism</b>. Real deployments combine them: e.g. TP=8 within each node, PP=2 across nodes, multiple DP replicas behind a router.</p>
+
+  <div class="box math"><div class="t">Napkin math: does 405B need 8 nodes?</div>
+    <table>
+      <tr><th>Llama 3.1 405B</th><th class="num">Weights</th><th>Fits on</th></tr>
+      <tr><td>BF16</td><td class="num">~810 GB</td><td>2× 8×H100 nodes, or 1× 8×H200 node (1,128 GB)</td></tr>
+      <tr><td>FP8 (Meta published an official FP8 version)</td><td class="num">~405 GB</td><td><b>1× 8×H100 node</b> (640 GB), with ~200 GB left for KV</td></tr>
+    </table>
+    <p>Eight nodes is 64 GPUs: 6–8x more hardware than needed, and every tensor-parallel all-reduce would cross InfiniBand at ~1/18th of NVLink's bandwidth.</p>
+  </div>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Shard a 405B model across 8 nodes and measure the communication overhead."</b> This teaches the wrong lesson. Spreading tensor parallelism across nodes is the textbook mistake the exercise should help you avoid. It's also very expensive to rent 64 GPUs for a learning project.</p>
+    <p><b>"Single-GPU inference is dead for frontier models."</b> True for frontier-scale dense and MoE models. But a large share of real production traffic runs on single-GPU models (7–32B, often quantized). Both worlds matter.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <ol>
+      <li>On one 8×H100 node, serve Llama 3.1 405B FP8 with TP=8. Record TTFT, ITL and throughput.</li>
+      <li>Serve a 70B model at TP=2, 4, 8 on the same node. Use Nsight Systems to measure the share of each decode step spent in NCCL all-reduce. Watch it grow as TP increases.</li>
+      <li>If you can get two nodes for a few hours: compare TP=16 across nodes against TP=8 + PP=2. The second should win clearly on decode latency.</li>
+      <li>Optional: serve a mid-size MoE model with EP and look at expert load imbalance.</li>
+    </ol>
+    <p><b>Done</b> means a chart of communication share vs parallelism layout, and a clear rule you'd apply in a design review.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Shoeybi et al., <i>Megatron-LM</i>. The original tensor-parallel layout.</li>
+      <li><i>How to Scale Your Model</i>, the chapters on sharding and inference.</li>
+      <li>DeepSeek-V3 technical report and their inference system write-ups (EP at scale).</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 8 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 8</div>
+  <h2>Speculative decoding</h2>
+  <p class="lede">Decode is memory-bound, so the GPU has spare compute. Speculative decoding spends that spare compute to produce several tokens per pass over the weights.</p>
+  <div class="meta"><span><b>Time:</b> 2 weeks</span><span><b>Hardware:</b> one node, draft and target on the same GPUs</span><span><b>Software:</b> vLLM / SGLang speculative decoding, EAGLE</span></div>
+
+  <h3>How it works</h3>
+  <ol>
+    <li>A cheap <b>draft</b> proposes <i>k</i> tokens (say 4).</li>
+    <li>The big <b>target</b> model runs once over all <i>k</i> positions in parallel. Because decode is memory-bound, checking 4 tokens costs about the same as generating 1.</li>
+    <li>A rejection-sampling rule accepts the longest prefix of draft tokens consistent with the target's distribution, then samples one more token from the target. You always get at least one token per pass.</li>
+  </ol>
+  <p>With the standard acceptance rule, the output distribution is <b>mathematically identical</b> to sampling from the target alone. That's the "no quality cost" part, and it's genuinely true.</p>
+
+  <h3>Kinds of drafters</h3>
+  <ul>
+    <li><b>Separate small model</b>, e.g. a 1B drafting for a 70B from the same family. Must share the tokenizer.</li>
+    <li><b>Medusa heads</b>: extra prediction heads attached to the target model that guess tokens +2, +3, … in one pass.</li>
+    <li><b>EAGLE (EAGLE-2, EAGLE-3)</b>: a light draft head that reads the target's hidden states. Currently among the best-performing approaches and well supported in vLLM and SGLang.</li>
+    <li><b>N-gram / prompt lookup</b>: no model at all. Copies candidate continuations from the prompt. Excellent for code editing, summarization and RAG, where output repeats input.</li>
+    <li>Some models now ship with built-in <b>multi-token prediction</b> heads (DeepSeek-V3's MTP) that double as drafters.</li>
+  </ul>
+
+  <div class="box math"><div class="t">Napkin math: expected tokens per pass</div>
+    <p>If each draft token is accepted independently with probability α and you draft <i>k</i> tokens, the expected tokens per target pass is:</p>
+    <p style="text-align:center"><b>(1 − α<sup>k+1</sup>) ÷ (1 − α)</b></p>
+    <p>α = 0.8, k = 4 → 3.36 tokens per pass. α = 0.6, k = 4 → 2.3. Subtract the drafter's own cost and the verification overhead, and you see why real speedups land around 1.5–3x, and why acceptance rate is the number to watch.</p>
+  </div>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"2x decode speed at zero quality cost."</b> The quality part is right. The speed part depends on acceptance rate (which varies by task, often by a lot) and on <b>batch size</b>. At high batch sizes the GPU no longer has spare compute, so verification isn't free and the gain shrinks or disappears. Speculative decoding is a <i>latency</i> optimization for low-to-moderate load. Good engines turn it down or off as load rises.</p>
+    <p><b>"A local 3B model drafts tokens for a cloud 70B model."</b> Each verify step would need a network round trip, typically 20–100 ms over the internet, while a decode step is roughly 10–30 ms. The network eats the entire gain. The draft must run next to the target, ideally on the same GPUs.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <ol>
+      <li>Serve a 70B target (or 8B, for cost) with three drafters: a small same-family model, an EAGLE head, and n-gram lookup.</li>
+      <li>Run three workloads: open-ended chat, code editing (output mostly copies input), and summarization.</li>
+      <li>Measure acceptance rate, mean accepted tokens per pass, single-stream tokens/s, and throughput at batch 1, 8, 32, 64.</li>
+      <li>Optional, if you want to keep the "local draft, cloud verify" idea: actually build it, add realistic network latency, and find the latency at which it stops helping. That's a nice short blog post.</li>
+    </ol>
+    <p><b>Done</b> means a speedup-vs-batch-size chart per drafter and workload, showing where each one stops paying off.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Leviathan et al., <i>Fast Inference from Transformers via Speculative Decoding</i>; Chen et al., <i>Accelerating LLM Decoding with Speculative Sampling</i>.</li>
+      <li>Cai et al., <i>Medusa</i>. Li et al., <i>EAGLE</i>, <i>EAGLE-2</i>, <i>EAGLE-3</i>.</li>
+      <li>vLLM and SGLang docs on speculative decoding.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 9 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 9</div>
+  <h2>Multi-node &amp; hardware interconnects</h2>
+  <p class="lede">Once a workload crosses machine boundaries, the network becomes part of the computer. This stage is about measuring it and designing around it.</p>
+  <div class="meta"><span><b>Time:</b> 2–3 weeks</span><span><b>Hardware:</b> 2 nodes with InfiniBand or RoCE, for a few hours</span><span><b>Software:</b> NCCL, nccl-tests, NIXL, Dynamo / llm-d</span></div>
+
+  <h3>The stack, bottom to top</h3>
+  <ul>
+    <li><b>NVLink / NVSwitch</b>: GPU-to-GPU inside a node (900 GB/s per H100; NVL72 racks extend NVLink across 72 Blackwell GPUs).</li>
+    <li><b>RDMA</b>: Remote Direct Memory Access. The NIC reads and writes remote memory without involving either CPU. <b>GPUDirect RDMA</b> lets the NIC access GPU memory directly, skipping host memory entirely.</li>
+    <li><b>InfiniBand</b> (NDR 400 Gb/s, XDR 800 Gb/s) or <b>RoCE</b> (RDMA over Converged Ethernet). Training clusters typically give each GPU its own NIC.</li>
+    <li><b>NCCL</b>: NVIDIA's collective communication library. It implements all-reduce, all-gather, all-to-all and so on, picks ring or tree algorithms, and uses NVLink or the network as appropriate.</li>
+    <li><b>NIXL</b> and similar point-to-point libraries: built for moving KV-cache blocks between machines, which collectives don't fit well.</li>
+  </ul>
+
+  <h3>Disaggregated prefill and decode</h3>
+  <p>Remember Stage 2: prefill is compute-bound and decode is memory-bound. Running them on the same GPU means they interfere: prefill bursts hurt decode latency, and you can't size hardware for either phase independently.</p>
+  <p><b>Disaggregation</b> splits them: a <b>prefill pool</b> processes prompts and produces KV caches, which are transferred over RDMA to a <b>decode pool</b> that generates tokens. Each pool can use its own parallelism, batch size, and even hardware type, and you scale them independently based on traffic shape. DistServe and Splitwise made the academic case; Mooncake ran it at scale; NVIDIA Dynamo, llm-d, and native modes in vLLM and SGLang now make it deployable.</p>
+
+  <div class="box math"><div class="t">Napkin math: can the network keep up?</div>
+    <p>A 4K-token prompt on Llama 3 70B produces 4K × 320 KB ≈ 1.3 GB of KV. Over one 400 Gb/s port (~50 GB/s): ~26 ms. Over 8 ports in parallel: ~3 ms. Compared with a prefill time of a few hundred ms, the transfer is cheap, <i>if</i> you use RDMA and overlap it with compute (stream KV layer by layer as prefill progresses). Over plain TCP on 25 GbE it would be ~400 ms. That's why the transport matters.</p>
+  </div>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Network latency is the new GPU bottleneck."</b> For cross-node tensor parallelism and large-scale expert parallelism, yes. For data-parallel replicas or well-designed disaggregation, the network is usually not the limiter. Don't generalize.</p>
+    <p><b>"Disaggregation is the 2026 meta."</b> It's the leading architecture for large deployments with long prompts and strict latency SLOs. For small deployments or short prompts, a co-located server with chunked prefill is simpler and often just as good. Disaggregation adds a KV transfer layer, two pools to balance, and more failure modes.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <ol>
+      <li>Run <code>nccl-tests</code> (<code>all_reduce_perf</code>, <code>alltoall_perf</code>) within one node and across two. Plot bus bandwidth vs message size. Note how small messages (typical for decode all-reduces) are latency-bound and far below peak.</li>
+      <li>Serve a 70B model with TP=8 in one node, then TP=16 across two. Compare decode ITL. Use <code>NCCL_DEBUG=INFO</code> to confirm which transport NCCL picked.</li>
+      <li>Deploy a disaggregated setup (1 prefill + 1 decode instance) with Dynamo, llm-d or vLLM's native support. Compare with a co-located baseline on a long-prompt workload: TTFT, ITL p99, and goodput at the same total GPU count.</li>
+    </ol>
+    <p><b>Done</b> means you can say, with your own data, when disaggregation is worth its complexity.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Zhong et al., <i>DistServe</i> (OSDI 2024); Patel et al., <i>Splitwise</i>; Qin et al., <i>Mooncake</i>.</li>
+      <li>NCCL documentation and the nccl-tests repository.</li>
+      <li>NVIDIA Dynamo and llm-d architecture docs.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 10 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 10</div>
+  <h2>Cluster orchestration &amp; GPU scheduling</h2>
+  <p class="lede">The most expensive GPU is the idle one. This stage is classic distributed-systems work with a very expensive resource at its center, and it's where your existing experience transfers most directly.</p>
+  <div class="meta"><span><b>Time:</b> 3–4 weeks</span><span><b>Hardware:</b> a small k8s cluster with 2–4 GPU nodes (spot)</span><span><b>Software:</b> Kubernetes, NVIDIA GPU Operator, KEDA, Ray / KubeRay</span></div>
+
+  <h3>The landscape</h3>
+  <table>
+    <tr><th>Tool</th><th>What it's for</th></tr>
+    <tr><td><b>Kubernetes + NVIDIA GPU Operator</b></td><td>The default for serving. The operator installs drivers, the device plugin, DCGM exporter and MIG manager. Dynamic Resource Allocation (DRA) is the newer, more flexible way to request GPUs.</td></tr>
+    <tr><td><b>Ray / KubeRay</b></td><td>Python-native distributed compute. Ray Serve handles multi-model serving and autoscaling; vLLM uses Ray for multi-node setups.</td></tr>
+    <tr><td><b>Slurm</b></td><td>The HPC batch scheduler. Still dominant for training clusters and batch inference jobs.</td></tr>
+    <tr><td><b>Kueue / Volcano</b></td><td>Batch queueing and gang scheduling on Kubernetes (all-or-nothing placement for multi-GPU jobs).</td></tr>
+    <tr><td><b>KEDA</b></td><td>Event-driven autoscaling: scale on queue depth or any Prometheus metric instead of CPU.</td></tr>
+  </table>
+
+  <h3>GPU sharing</h3>
+  <ul>
+    <li><b>MIG (Multi-Instance GPU)</b>: hardware partitioning on A100/H100/B200, up to 7 isolated instances per GPU with dedicated memory and SMs. Great for small models and dev environments; fixed partition sizes.</li>
+    <li><b>Time-slicing</b>: multiple processes share a GPU in turns. No memory isolation.</li>
+    <li><b>MPS</b>: concurrent kernels from multiple processes. Better utilization, weaker isolation.</li>
+  </ul>
+
+  <h3>Why LLM autoscaling is harder than web autoscaling</h3>
+  <ul>
+    <li><b>Cold starts are slow.</b> Pulling a container, loading 140 GB of weights and capturing CUDA graphs can take several minutes. Mitigations: pre-pulled images, weights on local NVMe or a fast shared filesystem, model streaming loaders, and keeping a warm buffer.</li>
+    <li><b>CPU and GPU utilization are bad scaling signals.</b> Scale on queue depth, pending requests, KV-cache usage, or TTFT approaching its SLO.</li>
+    <li><b>Spot instances get reclaimed</b> with short notice. Draining must stop new requests, let in-flight ones finish (or migrate), and deregister from the router before the node disappears.</li>
+  </ul>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Idle H100s burn $3+/hr."</b> On-demand H100 prices vary widely by provider and have fallen since 2024; plan with $2–4 per GPU-hour on-demand and less on spot or commitments, and check current prices. The point stands: an idle 8-GPU node costs hundreds of dollars a day, so scheduling is a FinOps job.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <p><b>Build a queue-based autoscaler with graceful drain.</b></p>
+    <ol>
+      <li>Requests go into a queue (Redis Streams or similar). Workers running vLLM pull from it.</li>
+      <li>KEDA scales the worker deployment on queue depth and oldest-message age. Allow scale to zero, plus a configurable warm minimum.</li>
+      <li>Nodes come from a spot node pool. On reclaim notice: mark the pod unready, stop pulling, finish in-flight requests, exit.</li>
+      <li>Measure cold-start time end to end, then shrink it (pre-pulled images, local weight cache, faster loader). Record time-to-scale under a traffic spike and dollars spent vs a fixed-size fleet over a simulated day.</li>
+    </ol>
+    <p><b>Done</b> means a cost-vs-SLO-violation chart comparing fixed, reactive and warm-buffer policies.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>NVIDIA GPU Operator and MIG user guides. Kubernetes DRA docs.</li>
+      <li>KEDA scalers documentation; KubeRay and Ray Serve autoscaling docs.</li>
+      <li>vLLM production-stack and llm-d deployment guides.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 11 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 11</div>
+  <h2>AI gateways, routing &amp; observability</h2>
+  <p class="lede">The gateway decides which model handles a request; observability tells you whether the answer came back fast, correct and cheap.</p>
+  <div class="meta"><span><b>Time:</b> 2–3 weeks</span><span><b>Hardware:</b> one GPU for a local model + API access</span><span><b>Software:</b> LiteLLM or Envoy AI Gateway, Prometheus, Grafana, OpenTelemetry, DCGM exporter</span></div>
+
+  <h3>The SLOs that matter</h3>
+  <table>
+    <tr><th>Metric</th><th>What it measures</th><th>Who cares</th></tr>
+    <tr><td><b>TTFT</b></td><td>Request arrival → first token</td><td>Interactive users; dominated by queueing + prefill</td></tr>
+    <tr><td><b>ITL / TPOT</b></td><td>Time between tokens</td><td>Streaming UX; humans read ~5–10 tokens/s</td></tr>
+    <tr><td><b>E2E latency</b></td><td>Arrival → last token</td><td>Agents and batch pipelines</td></tr>
+    <tr><td><b>Goodput</b></td><td>Requests/s that meet all SLOs</td><td>Capacity planning. The best single number.</td></tr>
+    <tr><td><b>Cost per 1M tokens</b></td><td>$/hr ÷ tokens/hr (input and output separately)</td><td>Finance, product</td></tr>
+  </table>
+  <p>Always report percentiles (p50, p95, p99), never just means.</p>
+
+  <h3>Routing</h3>
+  <ul>
+    <li><b>Rule-based</b>: by endpoint, user tier, prompt length. Boring and very effective.</li>
+    <li><b>Classifier-based / semantic</b>: a small model or embedding classifier predicts whether a cheap model will do. RouteLLM is a well-known open framework and paper on this.</li>
+    <li><b>Cascade</b>: try the cheap model, verify confidence or validate structured output, and escalate on failure.</li>
+  </ul>
+  <p>The router itself must be cheap: a few milliseconds and a tiny fraction of the cost it saves.</p>
+
+  <h3>GPU observability with DCGM</h3>
+  <p>The commonly watched "GPU utilization" metric (<code>DCGM_FI_DEV_GPU_UTIL</code>) only says whether <i>any</i> kernel was running in the sample window. A GPU running one tiny kernel all the time shows 100%. Better signals:</p>
+  <ul>
+    <li><code>DCGM_FI_PROF_SM_ACTIVE</code> and <code>DCGM_FI_PROF_SM_OCCUPANCY</code>: how much of the chip is actually busy.</li>
+    <li><code>DCGM_FI_PROF_PIPE_TENSOR_ACTIVE</code>: tensor-core usage.</li>
+    <li><code>DCGM_FI_PROF_DRAM_ACTIVE</code>: memory bandwidth usage. During decode, this is the one that should be high.</li>
+    <li>Clock throttle (clock event) reasons, temperature and power: this is how you catch a GPU that's silently thermal- or power-throttling.</li>
+    <li>XID errors and ECC counters: hardware faults that precede failures.</li>
+  </ul>
+
+  <h3>Tracing with OpenTelemetry</h3>
+  <p>OpenTelemetry has GenAI semantic conventions for LLM spans (model, token counts, finish reason, and so on). Trace a request across gateway → router → engine so you can split TTFT into queueing, routing, prefill and network time. Be careful about logging prompt and response content: it's often sensitive, so make it opt-in and redacted.</p>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Route by prompt complexity."</b> Prompt length and keywords are weak proxies for difficulty. A short question can need deep reasoning. Routers must be evaluated like models: measure quality on held-out traffic at each cost point, not just the share of traffic that went to the cheap model.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <ol>
+      <li>Put a gateway in front of a local quantized 8B model (vLLM) and a frontier API.</li>
+      <li>Build a router: start with rules, then add a small classifier trained on ~2,000 labeled prompts (label = "did the small model's answer match the frontier answer?").</li>
+      <li>Sweep the routing threshold and plot <b>quality vs cost</b>. Pick an operating point.</li>
+      <li>Wire Prometheus + Grafana with engine metrics, DCGM metrics and OTel traces. Deliberately throttle a GPU (lower its power limit) and confirm your dashboard catches it.</li>
+    </ol>
+    <p><b>Done</b> means a quality-vs-cost curve and a dashboard that would page you for the right reasons.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Ong et al., <i>RouteLLM</i>.</li>
+      <li>NVIDIA DCGM field identifiers documentation.</li>
+      <li>OpenTelemetry semantic conventions for generative AI.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ CH 12 ============ -->
+<section class="chapter">
+  <div class="kicker">Stage 12</div>
+  <h2>Public benchmarks &amp; teardowns</h2>
+  <p class="lede">The capstone. A rigorous, reproducible public teardown shows everything from the previous eleven stages in one piece of work.</p>
+  <div class="meta"><span><b>Time:</b> 3–4 weeks</span><span><b>Hardware:</b> the hardware you claim results for, reserved for long enough</span><span><b>Software:</b> vLLM, SGLang, TensorRT-LLM; vllm bench / sglang bench_serving / GenAI-Perf</span></div>
+
+  <h3>What makes a benchmark credible</h3>
+  <ol>
+    <li><b>Pin everything.</b> Engine versions (commit hashes), driver, CUDA, model revision, quantization recipe, every flag. Publish the exact launch commands.</li>
+    <li><b>Realistic traffic.</b> Real-ish input/output length distributions (e.g. from a public chat dataset), Poisson or bursty arrivals, not "1,000 identical 128-token prompts."</li>
+    <li><b>Sweep load, don't pick one point.</b> Plot <b>throughput vs latency</b> curves as request rate rises. The Pareto frontier is the result; a single number is marketing.</li>
+    <li><b>Fair tuning.</b> Give each engine a comparable tuning effort, and say how much you did. Ask the maintainers to review your configs before publishing; they usually help.</li>
+    <li><b>Check quality.</b> Confirm each engine's outputs match a reference on an eval set. A fast engine with a broken sampling path is not faster.</li>
+    <li><b>Repeat and report variance.</b> Warm-up runs, several repetitions, error bars.</li>
+    <li><b>Translate to cost.</b> $/1M output tokens at a stated SLO is what readers actually want.</li>
+  </ol>
+
+  <h3>A teardown outline that works</h3>
+  <pre><code>1. TL;DR: one chart, three sentences
+2. Setup: hardware, software versions, model, quantization
+3. Workloads: chat, long-context RAG, code; length distributions shown
+4. Results: latency-vs-throughput curves per workload, goodput at SLO
+5. Why: profiler evidence for the biggest differences
+6. Cost: $/1M tokens at SLO, per engine
+7. Caveats: what you didn't test, what might change next release
+8. Reproduce: repo link with scripts, configs, raw data</code></pre>
+  <p>Section 5 is what separates a teardown from a leaderboard. Anyone can run a benchmark script. Explaining <i>why</i> engine A wins on long prompts (chunked-prefill policy, attention kernel, scheduler) is what demonstrates expertise.</p>
+
+  <div class="box myth"><div class="t">Myth check</div>
+    <p><b>"Public proof gets you hired instantly by top AI labs."</b> It helps a lot, especially combined with open-source contributions to the engines themselves. "Instantly" is the hype talking. Merged PRs to vLLM, SGLang, Triton or FlashInfer are often an even stronger signal than a blog post.</p>
+  </div>
+
+  <div class="box do"><div class="t">Practice, done right</div>
+    <p>Pick <b>one</b> model (e.g. Llama 3.1 70B FP8) on <b>one</b> hardware config (e.g. 4×H100) and three workloads. Compare vLLM, SGLang and TensorRT-LLM (and optionally Dynamo or llm-d as a deployment layer). Publish the repo with one-command reproduction, plus the write-up. Then send it to the engine maintainers and incorporate their feedback in a v2.</p>
+  </div>
+</section>
+
+<!-- ============ CH 13: BEYOND ============ -->
+<section class="chapter">
+  <div class="kicker">Chapter 13</div>
+  <h2>Beyond the roadmap</h2>
+  <p class="lede">Five topics the original 12 stages skip. Each comes up constantly in real production work and in interviews.</p>
+  <table>
+    <tr><th style="width:34%">Topic</th><th>Why it matters</th><th style="width:22%">Builds on</th></tr>
+    <tr><td><b>13.1</b> Multi-LoRA serving</td><td>Hundreds of fine-tuned variants on one fleet instead of one fleet per model</td><td>Stages 3, 4, 6</td></tr>
+    <tr><td><b>13.2</b> Structured output</td><td>Agents and APIs need valid JSON; the constraint has a real speed cost</td><td>Stages 3, 6</td></tr>
+    <tr><td><b>13.3</b> Non-NVIDIA hardware</td><td>Supply, price and memory capacity increasingly favour alternatives</td><td>Stages 1, 2, 5</td></tr>
+    <tr><td><b>13.4</b> Offline &amp; batch inference</td><td>A large share of tokens have no human waiting; different objective entirely</td><td>Stages 3, 10</td></tr>
+    <tr><td><b>13.5</b> Reliability &amp; multi-tenancy</td><td>Failures, overload, fairness and cross-tenant leaks</td><td>Stages 4, 10, 11</td></tr>
+  </table>
+
+  <h3>13.1 Multi-LoRA serving</h3>
+  <p>LoRA fine-tuning adds a pair of small low-rank matrices next to selected weight matrices instead of changing the weights. An adapter of rank 16 on an 8B model is typically tens of MB, versus 16 GB for the base model. That size gap is the whole opportunity: keep <b>one copy of the base model</b> in GPU memory and serve many customers' or tasks' adapters on top of it.</p>
+  <p>The hard part is batching. A batch might contain requests for 30 different adapters. You can't merge each adapter into the weights, so the shared base GEMM runs once for everyone, and then a special kernel applies each request's own low-rank update. The Punica project introduced the SGMV kernel (segmented gather matrix-vector) for exactly this; S-LoRA added paging of adapters between CPU and GPU memory, much like PagedAttention does for KV blocks. vLLM and SGLang both support this natively (in vLLM: <code>--enable-lora</code>, <code>--max-loras</code>, <code>--max-lora-rank</code>).</p>
+  <div class="box math"><div class="t">Napkin math: one fleet vs many</div>
+    <p>100 fine-tuned 8B models served separately: 100 × 16 GB = 1.6 TB of weights, at least 20 H100s even if most models are idle. As adapters: 16 GB base + 100 × ~50 MB = ~21 GB, on one GPU, with the rest of memory free for KV cache. The decode cost of the adapter math is a few percent at moderate ranks.</p>
+  </div>
+  <p><b>What to watch:</b> adapter load latency on a cache miss (cold adapters come from CPU or disk), the cap on adapters per batch, higher ranks costing more, and routing. Adapter affinity is the same problem as prefix affinity in Stage 4: send requests for the same adapter to the replica that already has it loaded.</p>
+  <div class="box do"><div class="t">Practice</div>
+    <p>Serve an 8B base with 50 adapters (train a few cheaply, clone the rest with random weights for load testing). Use Zipf-distributed adapter popularity. Measure throughput and TTFT as the number of distinct adapters per batch rises, and the TTFT penalty on an adapter cache miss. Compare against a single merged model at the same load.</p>
+  </div>
+
+  <h3>13.2 Structured output and constrained decoding</h3>
+  <p>When an API promises "the output will match this JSON schema," the engine enforces it during decoding. The schema (or a regex or grammar) is compiled into a state machine. At each step, the engine computes which tokens are legal in the current state and masks every other token's logit to −∞ before sampling. The model literally cannot produce invalid output.</p>
+  <p>Libraries: <b>XGrammar</b> (the default backend in vLLM and SGLang today), <b>llguidance</b>, and <b>Outlines</b>. The tricky part is that grammars are written in characters but models emit tokens, which may span several grammar symbols. Good libraries precompute which tokens are valid for each state so the per-step cost stays small.</p>
+  <h4>Where the cost comes from</h4>
+  <ul>
+    <li><b>Mask computation</b> runs on the CPU at every step for every constrained sequence. At large batch sizes, or with complex grammars, this can become the step's critical path and leave the GPU waiting. Good engines overlap mask computation with the GPU forward pass.</li>
+    <li><b>Grammar compilation</b> for a new schema can take noticeable time. Cache compiled grammars by schema.</li>
+    <li><b>The upside</b>: when the grammar forces the next several tokens (e.g. <code>{"name": "</code>), the engine can skip the model entirely for those. SGLang calls this jump-forward decoding.</li>
+  </ul>
+  <div class="box myth"><div class="t">Quality trap</div>
+    <p>Forcing a model straight into a rigid schema can hurt answer quality, especially for reasoning-heavy tasks. A common pattern is to let the model reason freely (or in a <code>reasoning</code> field placed first in the schema) and constrain only the final answer fields. Measure task accuracy with and without constraints, not just validity rate.</p>
+  </div>
+  <div class="box do"><div class="t">Practice</div>
+    <p>Benchmark one model with no constraint, a simple JSON schema, and a deeply nested schema, at batch sizes 1 to 128. Measure tokens/s and per-step CPU time, and check in Nsight Systems whether the GPU idles waiting for masks. Then run a reasoning eval with and without a schema to see the quality effect.</p>
+  </div>
+
+  <h3>13.3 Non-NVIDIA hardware</h3>
+  <p>Everything in Stage 2 is hardware-agnostic: bytes, FLOPs, rooflines. What changes across vendors is memory capacity, bandwidth, interconnect, and above all <b>software maturity</b>.</p>
+  <table>
+    <tr><th>Platform</th><th>Strengths</th><th>Software stack</th><th>Watch out for</th></tr>
+    <tr><td><b>AMD Instinct</b> (MI300X 192 GB, MI325X 256 GB, MI355X 288 GB)</td><td>More HBM per GPU than NVIDIA equivalents: big models on fewer GPUs, more KV room</td><td>ROCm, HIP, RCCL. vLLM, SGLang and Triton all support it</td><td>Kernel coverage and tuning lag NVIDIA for new features; validate your exact model and features</td></tr>
+    <tr><td><b>Google TPU</b> (v5e, v6e Trillium, Ironwood)</td><td>Strong price-performance at scale, large pods with fast interconnect</td><td>JAX / XLA; vLLM TPU backend</td><td>Different programming model; static shapes; only on Google Cloud</td></tr>
+    <tr><td><b>AWS Trainium / Inferentia</b></td><td>Cost on AWS, availability</td><td>Neuron SDK; vLLM integration</td><td>Model support and compile times; AWS-only</td></tr>
+    <tr><td><b>Specialised</b> (Groq, Cerebras, SambaNova)</td><td>Very high single-stream tokens/s via on-chip SRAM</td><td>Mostly consumed as an API</td><td>Mostly API access; limited control over models</td></tr>
+  </table>
+  <div class="box math"><div class="t">Napkin math: memory capacity changes the design</div>
+    <p>Llama 3 70B in BF16 (140 GB) fits on a <b>single</b> 192 GB MI300X with ~40 GB left for KV cache. On H100s it needs two GPUs and tensor parallelism. One GPU means no all-reduce traffic at all. Capacity, not just FLOPs, decides the architecture.</p>
+  </div>
+  <p><b>The portable skills:</b> Triton (runs on NVIDIA and AMD), the vLLM/SGLang abstractions, and roofline reasoning. Write your benchmark harness to be hardware-agnostic from day one, and a cross-vendor teardown becomes an easy Stage 12 extension that relatively few people publish carefully.</p>
+  <div class="box do"><div class="t">Practice</div>
+    <p>Rent an MI300X for a day. Run your Stage 3 workload with the same vLLM version. Compare goodput per dollar against H100, and note every feature or kernel that didn't work or needed a workaround. That list is as valuable as the numbers.</p>
+  </div>
+
+  <h3>13.4 Offline and batch inference</h3>
+  <p>Evaluations, synthetic data generation, document processing, embeddings over a corpus, nightly classification: nobody is watching a cursor blink. The objective flips from <b>latency under an SLO</b> to <b>tokens per dollar, finished by a deadline</b>.</p>
+  <h4>What changes</h4>
+  <ul>
+    <li><b>Batch as large as memory allows.</b> Push <code>max_num_seqs</code> and the token budget way up. Decode climbs toward the compute roof (Stage 2), which is exactly what interactive serving can't afford.</li>
+    <li><b>Order the work.</b> Group requests sharing a prefix so prefix caching hits; sort by length to reduce padding and tail effects.</li>
+    <li><b>Use the offline API directly.</b> vLLM's <code>LLM</code> class (no HTTP server), or Ray Data for multi-node pipelines with streaming input and output.</li>
+    <li><b>Spot everything, checkpoint progress.</b> Write results incrementally and make the job resumable, so a reclaimed node costs minutes, not hours.</li>
+    <li><b>Quantize more aggressively</b> if the quality eval allows, since cost is the only goal.</li>
+    <li><b>Compare with provider batch APIs.</b> Major API providers offer asynchronous batch endpoints at a large discount (commonly around 50%). Self-hosting has to beat that.</li>
+  </ul>
+  <div class="box do"><div class="t">Practice</div>
+    <p>Process 1M prompts (e.g. summarise a public dataset) with an 8B model. Start with naive defaults, then apply each technique above one at a time and record $/1M output tokens after each. Kill a node mid-run and verify the job resumes correctly.</p>
+  </div>
+
+  <h3>13.5 Reliability and multi-tenancy</h3>
+  <h4>GPUs fail, and in unhelpful ways</h4>
+  <ul>
+    <li><b>Hard faults</b>: XID errors, uncorrectable ECC errors, NVLink errors, GPUs falling off the bus. DCGM reports them (Stage 11); automate cordon-and-drain.</li>
+    <li><b>Hangs</b>: a stuck NCCL collective freezes every GPU in a tensor-parallel group. Set collective timeouts and a watchdog that restarts the whole group.</li>
+    <li><b>Silent degradation</b>: thermal throttling or one slow GPU in a TP group drags the whole group down to its speed.</li>
+    <li><b>Honest health checks</b>: an HTTP 200 from the server process proves nothing. Run a tiny real generation as the readiness probe.</li>
+  </ul>
+  <h4>Overload and fairness</h4>
+  <ul>
+    <li><b>Admission control</b>: when KV cache is nearly full, the engine starts <i>preempting</i> sequences (recomputing or swapping their KV), and throughput collapses. Shed or queue load at the gateway before that point, based on KV usage and queue depth.</li>
+    <li><b>Cancel on disconnect</b>: when a client goes away, abort the request and free its KV blocks immediately. Otherwise abandoned requests keep burning GPU time.</li>
+    <li><b>Retries are expensive</b>: a retried 4K-token request repeats the whole prefill. Use retry budgets and backoff to avoid retry storms during incidents.</li>
+    <li><b>Fairness in tokens, not requests</b>: one tenant sending 32K-token prompts costs far more than one sending 200-token chats. Rate-limit and fair-queue by tokens; use priority scheduling for interactive vs batch traffic.</li>
+  </ul>
+  <h4>Isolation: the prefix-cache side channel</h4>
+  <p>Shared prefix caching creates a <b>timing side channel</b>: if a request's TTFT is suspiciously fast, its prefix was already cached, meaning someone else recently sent the same text. Researchers have shown this can leak information about other users' prompts. Mitigation: scope the cache per tenant by mixing a tenant-specific salt into block hashes (vLLM supports a per-request cache salt), and share caches only for public content like your own system prompts.</p>
+  <div class="box do"><div class="t">Practice</div>
+    <p>Chaos-test your Stage 10 cluster: kill a GPU process mid-generation, inject a network partition inside a TP group, and flood it with one tenant's long prompts. For each, record what users saw and how long recovery took. Then demonstrate the prefix-cache timing leak between two tenants, turn on per-tenant salting, and show the leak is gone.</p>
+  </div>
+
+  <div class="box note"><div class="t">Read more</div>
+    <ul>
+      <li>Chen et al., <i>Punica</i>; Sheng et al., <i>S-LoRA</i>.</li>
+      <li>Dong et al., <i>XGrammar</i>; vLLM and SGLang structured-output docs.</li>
+      <li>AMD ROCm documentation for vLLM; the vLLM TPU backend docs.</li>
+      <li>vLLM offline inference docs; Ray Data LLM batch inference docs.</li>
+      <li>Research on prompt leakage via KV-cache sharing timing; vLLM docs on cache salting.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ============ APPENDIX A ============ -->
+<section class="chapter">
+  <div class="kicker">Appendix A</div>
+  <h2>A compressed 6-month plan</h2>
+  <p class="lede">The original roadmap is linear. With 20 years of systems experience, you can run stages in parallel and skip what you already know.</p>
+
+  <table>
+    <tr><th style="width:18%">Month</th><th style="width:30%">Stages</th><th>Deliverable</th></tr>
+    <tr><td><b>1</b></td><td>1 + 2 together</td><td>SGEMM ladder with profiler notes; decode-vs-batch roofline plot on an 8B model.</td></tr>
+    <tr><td><b>2</b></td><td>6 (Triton) + finish 2</td><td>Fused RMSNorm + residual kernel at 80%+ of peak bandwidth; Nsight trace showing CUDA-graph gap removal.</td></tr>
+    <tr><td><b>3</b></td><td>3 + 5</td><td>Chunked-prefill goodput study on 70B; FP8 vs INT4 vs BF16 quality/latency table.</td></tr>
+    <tr><td><b>4</b></td><td>4 + 8</td><td>Cache-aware router with spillover; speculative-decoding speedup-vs-batch chart.</td></tr>
+    <tr><td><b>5</b></td><td>7 + 9 + 10 (light)</td><td>Parallelism layout study on one node; one disaggregated deployment; KEDA autoscaler with spot drain.</td></tr>
+    <tr><td><b>6</b></td><td>11 + 12</td><td>Gateway with quality-vs-cost routing; the public teardown.</td></tr>
+  </table>
+
+  <h3>Budget</h3>
+  <p>Most of months 1–2 runs on one GPU: a local card or a single rented H100 for a few dozen hours. Months 3–6 need multi-GPU nodes in bursts. Rent by the hour, script every experiment so it runs unattended, and tear down immediately. A realistic total is a few hundred to low thousands of dollars in GPU time, depending on prices and how disciplined you are with shutdowns. Reserve the 8-GPU and 2-node experiments for a few focused sessions each.</p>
+
+  <h3>Working habits that compound</h3>
+  <ul>
+    <li><b>Predict before you measure.</b> Write the napkin-math estimate first. The gap between prediction and measurement is where learning happens.</li>
+    <li><b>Keep a lab notebook repo.</b> Every experiment: config, command, raw results, plot, three-line conclusion. It becomes your Stage 12 material.</li>
+    <li><b>Read engine source, not just docs.</b> vLLM's scheduler and block manager, SGLang's radix cache, and Triton kernels in FlashInfer are all very readable for an experienced engineer.</li>
+    <li><b>Contribute upstream early.</b> A small fix to vLLM or SGLang in month 2 gets you into the community and the code review loop.</li>
+    <li><b>Use AI assistants for scaffolding, not for numbers.</b> Let them write benchmark harnesses and plotting code; verify every performance claim yourself.</li>
+  </ul>
+</section>
+
+<!-- ============ APPENDIX B ============ -->
+<section class="chapter">
+  <div class="kicker">Appendix B</div>
+  <h2>Cheat sheets</h2>
+
+  <h3>Hardware numbers (approximate peak, dense)</h3>
+  <table>
+    <tr><th>GPU</th><th class="num">Memory</th><th class="num">Bandwidth</th><th class="num">BF16 TFLOP/s</th><th class="num">FP8 TFLOP/s</th><th class="num">Ridge (BF16)</th></tr>
+    <tr><td>A100 80GB SXM</td><td class="num">80 GB</td><td class="num">2.0 TB/s</td><td class="num">312</td><td class="num">n/a</td><td class="num">~156</td></tr>
+    <tr><td>H100 SXM</td><td class="num">80 GB</td><td class="num">3.35 TB/s</td><td class="num">~989</td><td class="num">~1,979</td><td class="num">~295</td></tr>
+    <tr><td>H200 SXM</td><td class="num">141 GB</td><td class="num">4.8 TB/s</td><td class="num">~989</td><td class="num">~1,979</td><td class="num">~206</td></tr>
+    <tr><td>B200</td><td class="num">~180–192 GB</td><td class="num">~8 TB/s</td><td class="num">~2,250</td><td class="num">~4,500</td><td class="num">~280</td></tr>
+  </table>
+  <p class="small">Vendor figures vary by SKU, power limit and configuration. Sustained numbers are typically 60–85% of peak. Use these for estimates only.</p>
+
+  <h3>Formulas to know by heart</h3>
+  <table>
+    <tr><th style="width:42%">Quantity</th><th>Formula</th></tr>
+    <tr><td>Weight memory</td><td>params × bytes per param (BF16 = 2, FP8 = 1, INT4 ≈ 0.5 + scales)</td></tr>
+    <tr><td>KV bytes per token</td><td>2 × layers × kv_heads × head_dim × bytes</td></tr>
+    <tr><td>Decode speed limit (batch 1)</td><td>bandwidth ÷ (weight bytes + KV bytes read per step)</td></tr>
+    <tr><td>FLOPs per token (forward)</td><td>≈ 2 × params (plus attention, which grows with context)</td></tr>
+    <tr><td>Prefill time (compute-bound)</td><td>≈ 2 × params × prompt tokens ÷ (achieved FLOP/s)</td></tr>
+    <tr><td>Decode arithmetic intensity</td><td>≈ batch size (FLOPs/byte, BF16 weights)</td></tr>
+    <tr><td>Ridge point</td><td>peak FLOP/s ÷ bandwidth</td></tr>
+    <tr><td>Speculative tokens per pass</td><td>(1 − α<sup>k+1</sup>) ÷ (1 − α)</td></tr>
+    <tr><td>Cost per 1M tokens</td><td>($/hour for the GPUs) ÷ (tokens per hour) × 10<sup>6</sup></td></tr>
+  </table>
+
+  <div class="box math"><div class="t">Worked example: prefill time</div>
+    <p>Llama 3 70B, 4,000-token prompt: 2 × 70×10<sup>9</sup> × 4,000 = 5.6×10<sup>14</sup> FLOPs. On 4×H100 at ~50% of BF16 peak (~2,000 TFLOP/s total): ~0.28 s. That's your TTFT floor before queueing.</p>
+  </div>
+
+  <h3>Glossary</h3>
+  <table>
+    <tr><td style="width:24%"><b>All-reduce</b></td><td>Collective that sums tensors across GPUs and gives every GPU the result. Core of tensor parallelism.</td></tr>
+    <tr><td><b>All-to-all</b></td><td>Every GPU sends a distinct chunk to every other GPU. Core of expert parallelism.</td></tr>
+    <tr><td><b>Chunked prefill</b></td><td>Splitting long prompts into pieces processed alongside decode steps.</td></tr>
+    <tr><td><b>Continuous batching</b></td><td>Adding and removing requests from the running batch at every step.</td></tr>
+    <tr><td><b>CUDA graph</b></td><td>A recorded sequence of kernel launches replayed with one call.</td></tr>
+    <tr><td><b>Disaggregation</b></td><td>Running prefill and decode on separate GPU pools, transferring KV between them.</td></tr>
+    <tr><td><b>GQA / MLA</b></td><td>Attention variants that shrink the KV cache (shared KV heads; latent compression).</td></tr>
+    <tr><td><b>Goodput</b></td><td>Throughput counting only requests that met their SLOs.</td></tr>
+    <tr><td><b>ITL / TPOT</b></td><td>Inter-token latency / time per output token.</td></tr>
+    <tr><td><b>MIG</b></td><td>Hardware partitioning of one GPU into isolated instances.</td></tr>
+    <tr><td><b>MoE</b></td><td>Mixture of Experts: only a few expert sub-networks run per token.</td></tr>
+    <tr><td><b>Occupancy</b></td><td>Resident warps on an SM relative to the maximum.</td></tr>
+    <tr><td><b>PagedAttention</b></td><td>KV cache stored in fixed-size blocks with a per-sequence block table.</td></tr>
+    <tr><td><b>Roofline</b></td><td>Model bounding performance by compute peak or bandwidth × intensity.</td></tr>
+    <tr><td><b>SM</b></td><td>Streaming Multiprocessor, the GPU's basic compute unit.</td></tr>
+    <tr><td><b>TTFT</b></td><td>Time to first token.</td></tr>
+    <tr><td><b>Warp</b></td><td>32 threads that execute in lockstep.</td></tr>
+  </table>
+
+  <h3>The short reading list</h3>
+  <p>If you only read ten things:</p>
+  <ol>
+    <li>Horace He, <i>Making Deep Learning Go Brrrr From First Principles</i></li>
+    <li>Google DeepMind, <i>How to Scale Your Model</i></li>
+    <li>Simon Boehm, <i>How to Optimize a CUDA Matmul Kernel</i></li>
+    <li>Kwon et al., <i>PagedAttention / vLLM</i> (SOSP 2023)</li>
+    <li>Agrawal et al., <i>Sarathi-Serve</i> (OSDI 2024)</li>
+    <li>Dao et al., <i>FlashAttention</i> (1, 2 and 3)</li>
+    <li>Lin et al., <i>AWQ</i>, and Frantar et al., <i>GPTQ</i></li>
+    <li>Leviathan et al., <i>Fast Inference via Speculative Decoding</i>, plus the EAGLE papers</li>
+    <li>Zhong et al., <i>DistServe</i>, and Qin et al., <i>Mooncake</i></li>
+    <li>The vLLM and SGLang source code, starting from the scheduler</li>
+  </ol>
+  <p class="small" style="margin-top:16pt">End of guide. Wrappers may be a commodity, but the physics doesn't change: count the bytes, place the workload on the roofline, and measure before you believe.</p>
+</section>
+
+</body>
+</html>
